@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -27,12 +27,12 @@
 #include "twibus.h"
 
 #include <Wire.h>
-
+#include <lpc17xx_i2c.h>
 #include "../libs/hex_print.h"
 
 TWIBus i2c;
 
-TWIBus::TWIBus() {
+TWIBus::TWIBus() {                                  //TG- gets instantiated at startup
   #if I2C_SLAVE_ADDRESS == 0
 
     #if PINS_EXIST(I2C_SCL, I2C_SDA) && DISABLED(SOFT_I2C_EEPROM)
@@ -55,7 +55,7 @@ void TWIBus::reset() {
   buffer[0] = 0x00;
 }
 
-void TWIBus::address(const uint8_t adr) {
+void TWIBus::address(const uint8_t adr) {       //TG- checks valid address, sets variable for send()
   if (!WITHIN(adr, 8, 127))
     SERIAL_ECHO_MSG("Bad I2C address (8-127)");
 
@@ -64,7 +64,7 @@ void TWIBus::address(const uint8_t adr) {
   debug(F("address"), adr);
 }
 
-void TWIBus::addbyte(const char c) {
+void TWIBus::addbyte(const char c) {            //TG- simply adds data byte to TWI::buffer, 32 bytes MAX
   if (buffer_s >= COUNT(buffer)) return;
   buffer[buffer_s++] = c;
   debug(F("addbyte"), c);
@@ -80,10 +80,9 @@ void TWIBus::addstring(char str[]) {
   while (char c = *str++) addbyte(c);
 }
 
-void TWIBus::send() {
+void TWIBus::send() {   // send as Master??
   debug(F("send"), addr);
-
-  Wire.beginTransmission(I2C_ADDRESS(addr));
+  Wire.beginTransmission(I2C_ADDRESS(addr));        //TG- sets flags in Wire.cpp
   Wire.write(buffer, buffer_s);
   Wire.endTransmission();
 
@@ -149,13 +148,14 @@ void TWIBus::echobuffer(FSTR_P const prefix, uint8_t adr) {
   SERIAL_EOL();
 }
 
+//TG- Master request data from Slave
 bool TWIBus::request(const uint8_t bytes) {
   if (!addr) return false;
 
   debug(F("request"), bytes);
 
   // requestFrom() is a blocking function
-  if (Wire.requestFrom(I2C_ADDRESS(addr), bytes) == 0) {
+  if (Wire.requestFrom(I2C_ADDRESS(addr), bytes) == 0) {    // gets Slave data by Master receive
     debug(F("request fail"), I2C_ADDRESS(addr));
     return false;
   }
@@ -163,13 +163,15 @@ bool TWIBus::request(const uint8_t bytes) {
   return true;
 }
 
-void TWIBus::relay(const uint8_t bytes, const uint8_t style/*=0*/) {
+//TG- Master request data from Slave and echo bytes to serial
+void TWIBus::relay(const uint8_t bytes, const uint8_t style/*=0*/) {  // Read as Master??
   debug(F("relay"), bytes);
 
   if (request(bytes))
     echodata(bytes, F("i2c-reply"), addr, style);
 }
 
+//TG- take bytes available from rxBuffer
 uint8_t TWIBus::capture(char *dst, const uint8_t bytes) {
   reset();
   uint8_t count = 0;

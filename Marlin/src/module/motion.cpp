@@ -187,7 +187,7 @@ inline void report_more_positions() {
 
 // Report the logical position for a given machine position
 inline void report_logical_position(const xyze_pos_t &rpos) {
-  const xyze_pos_t lpos = rpos.asLogical();
+  const xyze_pos_t lpos = rpos.asLogical();   //TG - .asLogical() adds _WS (workspace_offset) to X,Y,Z,e, etc.
   SERIAL_ECHOPGM_P(
     LIST_N(DOUBLE(NUM_AXES),
          X_LBL, lpos.x,
@@ -225,7 +225,7 @@ void report_real_position() {
 
 // Report the logical current position according to the most recent G-code command
 void report_current_position() {
-  report_logical_position(current_position);
+  report_logical_position(current_position);  //TG reports the current_position
   report_more_positions();
 }
 
@@ -2372,7 +2372,7 @@ void set_axis_is_at_home(const AxisEnum axis) {
 }
 
 #if HAS_WORKSPACE_OFFSET
-  void update_workspace_offset(const AxisEnum axis) {
+  void update_workspace_offset(const AxisEnum axis) {  //TG sets workspace_offset[] to home_offset[] + position_shift[]
     workspace_offset[axis] = home_offset[axis] + position_shift[axis];
     if (DEBUGGING(LEVELING)) DEBUG_ECHOLNPGM("Axis ", AS_CHAR(AXIS_CHAR(axis)), " home_offset = ", home_offset[axis], " position_shift = ", position_shift[axis]);
   }

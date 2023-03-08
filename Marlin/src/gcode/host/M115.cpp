@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -62,18 +62,19 @@
  *       If a capability is not reported, hosts should assume
  *       the capability is not present.
  */
-void GcodeSuite::M115() {
-  SERIAL_ECHOPGM("FIRMWARE_NAME:Marlin"
-    " " DETAILED_BUILD_VERSION " (" __DATE__ " " __TIME__ ")"
-    " SOURCE_CODE_URL:" SOURCE_CODE_URL
-    " PROTOCOL_VERSION:" PROTOCOL_VERSION
-    " MACHINE_TYPE:" MACHINE_NAME
-    " EXTRUDER_COUNT:" STRINGIFY(EXTRUDERS)
+void GcodeSuite::
+M115() {
+  SERIAL_ECHOLNPGM(
+    "FIRMWARE_NAME:Marlin " DETAILED_BUILD_VERSION "   (" __DATE__ " " __TIME__ ") "  //TG 9/1/22 added 2 spaces after BUILD VERSION
+    "SOURCE_CODE_URL:" SOURCE_CODE_URL " "
+    "PROTOCOL_VERSION:" PROTOCOL_VERSION " "
+    "MACHINE_TYPE:" MACHINE_NAME " "
+    "EXTRUDER_COUNT:" STRINGIFY(EXTRUDERS) " "
     #if NUM_AXES != XYZ
-      " AXIS_COUNT:" STRINGIFY(NUM_AXES)
+      "AXIS_COUNT:" STRINGIFY(NUM_AXES) " "
     #endif
     #ifdef MACHINE_UUID
-      " UUID:" MACHINE_UUID
+      "UUID:" MACHINE_UUID
     #endif
   );
 

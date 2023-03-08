@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -36,7 +36,7 @@
  */
 
 // Change EEPROM version if the structure changes
-#define EEPROM_VERSION "V87"
+#define EEPROM_VERSION "V87  //TG - 10/7/21 added a setting at end for PID state
 #define EEPROM_OFFSET 100
 
 // Check the integrity of data offsets.
@@ -169,6 +169,10 @@
 #if ENABLED(DGUS_LCD_UI_MKS)
   #include "../lcd/extui/dgus/DGUSScreenHandler.h"
   #include "../lcd/extui/dgus/DGUSDisplayDef.h"
+#endif
+
+#if ENABLED(SPINDLE_FEATURE)
+  #include "../feature/spindle_laser.h"      //TG - 9/27/21 added
 #endif
 
 #pragma pack(push, 1) // No padding between variables
@@ -580,13 +584,18 @@ typedef struct SettingsDataStruct {
   //
   // Input Shaping
   //
-  #if ENABLED(INPUT_SHAPING_X)
+    #if ENABLED(INPUT_SHAPING_X)
     float shaping_x_frequency, // M593 X F
           shaping_x_zeta;      // M593 X D
   #endif
   #if ENABLED(INPUT_SHAPING_Y)
     float shaping_y_frequency, // M593 Y F
           shaping_y_zeta;      // M593 Y D
+  #endif
+
+  //TG just serves to declare variable type and size for storage in struct, not really used
+  #if ENABLED(SPINDLE_FEATURE)  
+  //  bool use_pid;               //TG 7/25/22 removed, PID now handled in AVRTriac control board                                               
   #endif
 
 } SettingsData;
@@ -1094,11 +1103,11 @@ void MarlinSettings::postprocess() {
     //
     {
       _FIELD_TEST(bedPID);
-      #if ENABLED(PIDTEMPBED)
+      #if EITHER(PIDTEMPBED,PIDSPINDLE_USE_PIDTEMPBED)	//TG 9/21/21 was #if was ENABLED(PIDTEMPBED), added PIDSPINDLE_USE_PIDTEMPBED
         const PID_t &pid = thermalManager.temp_bed.pid;
-        const raw_pid_t bed_pid = { pid.p(), pid.i(), pid.d() };
+        const raw_pid_t bed_pid = { pid.p(), pid.i(), pid.d() };	// Store the unscaled PID values
       #else
-        const raw_pid_t bed_pid = { NAN, NAN, NAN };
+        const raw_pid_t bed_pid = { NAN, NAN, NAN };				// Store null
       #endif
       EEPROM_WRITE(bed_pid);
     }
@@ -1607,6 +1616,13 @@ void MarlinSettings::postprocess() {
     #endif
 
     //
+     //TG - 9/27/21 additional settings to store to EEPROM after all standard settings above
+    //
+    #if ENABLED(SPINDLE_FEATURE)                //TG 7/25/22 removed, cutter.spindle_use_pid is now PIDFLAG and stored in AVR EEPROM   
+      //EEPROM_WRITE(cutter.spindle_use_pid);   //TG - 9/27/21 store directly from cutter struct (doesn't use pid_control defined in SettingsDataStruct)
+    #endif              
+
+    //
     // Model predictive control
     //
     #if ENABLED(MPCTEMP)
@@ -1826,7 +1842,7 @@ void MarlinSettings::postprocess() {
         #else
           // MBL is disabled - skip the stored data
           for (uint16_t q = mesh_num_x * mesh_num_y; q--;) EEPROM_READ(dummyf);
-        #endif
+        #endif // MESH_BED_LEVELING
       }
 
       //
@@ -2052,7 +2068,7 @@ void MarlinSettings::postprocess() {
       {
         raw_pid_t pid;
         EEPROM_READ(pid);
-        #if ENABLED(PIDTEMPBED)
+        #if EITHER(PIDTEMPBED, PIDSPINDLE_USE_PIDTEMPBED)   //TG 9/21/21 was #if ENABLED(PIDTEMPBED), added PIDSPINDLE_USE_PIDTEMPBED
           if (!validating && !isnan(pid.p))
             thermalManager.temp_bed.pid.set(pid);
         #endif
@@ -3190,8 +3206,8 @@ void MarlinSettings::reset() {
   // Heated Bed PID
   //
 
-  #if ENABLED(PIDTEMPBED)
-    thermalManager.temp_bed.pid.set(DEFAULT_bedKp, DEFAULT_bedKi, DEFAULT_bedKd);
+  #if EITHER(PIDTEMPBED, PIDSPINDLE_USE_PIDTEMPBED)   //TG 9/21/21 was #if ENABLED(PIDTEMPBED), added PIDSPINDLE_USE_PIDTEMPBED
+    thermalManager.temp_bed.pid.set(DEFAULT_bedKp, DEFAULT_bedKi, DEFAULT_bedKd);  #endif
   #endif
 
   //
@@ -3351,6 +3367,13 @@ void MarlinSettings::reset() {
   //
   TERN_(DWIN_LCD_PROUI, DWIN_SetDataDefaults());
 
+  //
+  //TG - 9/27/21 additional settings to reset value to default from Configuration.h
+  //TG 7/22/22 commented out this is now PIDFLAG and saved in AVR EEPROM
+  //#if ENABLED(SPINDLE_FEATURE)
+  //  cutter.spindle_use_pid = SPINDLE_USE_PID;
+  //#endif
+  
   //
   // Model predictive control
   //
@@ -3694,6 +3717,17 @@ void MarlinSettings::reset() {
     #endif
 
     TERN_(HAS_MULTI_LANGUAGE, gcode.M414_report(forReplay));
+    
+        //TG 10/3/21 added this to include Waveform Logging status
+    #if BOTH(PID_WAVEFORM_LOGGING, SPINDLE_FEATURE)
+      CONFIG_ECHO_MSG(" PID Waveform Logging: ON");
+    #else
+      CONFIG_ECHO_MSG(" PID Waveform Logging: OFF");
+    #endif
+    //TG 10/3/21 added this to include Spindle_Use_PID flag status for terminal log output only
+    #if ENABLED(SPINDLE_FEATURE)
+      CONFIG_ECHO_MSG("Spindle Use PID: M7979: ", cutter.spindle_use_pid);
+    #endif
 
     //
     // Model predictive control

@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -25,7 +25,7 @@
  * feature/spindle_laser.h
  * Support for Laser Power or Spindle Power & Direction
  */
-
+#include "math.h"
 #include "../inc/MarlinConfig.h"
 
 #include "spindle_laser_types.h"
@@ -35,10 +35,14 @@
 // Inline laser power
 #include "../module/planner.h"
 
-#define PCT_TO_PWM(X) ((X) * 255 / 100)
+#define PCT_TO_PWM(X) ((X) * (float)SPINDLE_LASER_PWM_RES / 100.0f + 0.5f)  //TG 10/3/21 fixed this to return correct value by using (float)
 #define PCT_TO_SERVO(X) ((X) * 180 / 100)
 
+#ifndef SPEED_POWER_INTERCEPT
+  #define SPEED_POWER_INTERCEPT 0
+#endif
 
+// #define _MAP(N,S1,S2,D1,D2) ((N)*_MAX((D2)-(D1),0)/_MAX((S2)-(S1),1)+(D1))
 // Laser/Cutter operation mode
 enum CutterMode : int8_t {
   CUTTER_MODE_ERROR = -1,
@@ -49,48 +53,50 @@ enum CutterMode : int8_t {
 
 class SpindleLaser {
 public:
-  static CutterMode cutter_mode;
-
-  static constexpr uint8_t pct_to_ocr(const_float_t pct) { return uint8_t(PCT_TO_PWM(pct)); }
-
+  //TG - takes a float as percent and returns 0 to SPINDLE_LASER_PWM_RES, minimum resolution is 1 count
+  static constexpr uint16_t pct_to_ocr(const_float_t pct) { return uint16_t(PCT_TO_PWM(pct)); }  //TG 9/30/21 changed to uint16_t for more resolution
   // cpower = configured values (e.g., SPEED_POWER_MAX)
+
   // Convert configured power range to a percentage
+  //TG - !!!!warning returned an int8_t so inputs under 1% get lost (returns 0)!!!!
+  //TG - 9/30/21 Changed this sub to return a float to allow percentages under 1%
   static constexpr cutter_cpower_t power_floor = TERN(CUTTER_POWER_RELATIVE, SPEED_POWER_MIN, 0);
-  static constexpr uint8_t cpwr_to_pct(const cutter_cpower_t cpwr) {
-    return cpwr ? round(100.0f * (cpwr - power_floor) / (SPEED_POWER_MAX - power_floor)) : 0;
+  static constexpr float cpwr_to_pct(const cutter_cpower_t cpwr) {
+    return cpwr ? (100.0f * (cpwr - power_floor) / (SPEED_POWER_MAX - power_floor)) : 0;
   }
 
   // Convert config defines from RPM to %, angle or PWM when in Spindle mode
   // and convert from PERCENT to PWM when in Laser mode
   static constexpr cutter_power_t cpwr_to_upwr(const cutter_cpower_t cpwr) { // STARTUP power to Unit power
-    return (
+  	return (
       #if ENABLED(SPINDLE_FEATURE)
-        // Spindle configured define values are in RPM
+        // Spindle configured values are in RPM
         #if CUTTER_UNIT_IS(RPM)
-          cpwr                            // to same
-        #elif CUTTER_UNIT_IS(PERCENT)
-          cpwr_to_pct(cpwr)               // to Percent
-        #elif CUTTER_UNIT_IS(SERVO)
-          PCT_TO_SERVO(cpwr_to_pct(cpwr)) // to SERVO angle
-        #else
-          PCT_TO_PWM(cpwr_to_pct(cpwr))   // to PWM
+          cpwr                            // to same (RPM)
+        #elif CUTTER_UNIT_IS(PERCENT)     // to PCT
+          cpwr_to_pct(cpwr)
+        #elif CUTTER_UNIT_IS(SERVO)       // to SERVO angle
+          PCT_TO_SERVO(cpwr_to_pct(cpwr))
+        #else                             // to PWM
+          PCT_TO_PWM(cpwr_to_pct(cpwr))
         #endif
       #else
-        // Laser configured define values are in Percent
+        // Laser configured define values are in PCT
         #if CUTTER_UNIT_IS(PWM255)
-          PCT_TO_PWM(cpwr)                // to PWM
+          PCT_TO_PWM(cpwr)				  // to PWM
         #else
-          cpwr                            // to same
+          cpwr                            // to same (PCT)
         #endif
       #endif
     );
+
   }
 
   static constexpr cutter_power_t mpower_min() { return cpwr_to_upwr(SPEED_POWER_MIN); }
   static constexpr cutter_power_t mpower_max() { return cpwr_to_upwr(SPEED_POWER_MAX); }
 
   #if ENABLED(LASER_FEATURE)
-    static cutter_test_pulse_t testPulse;                 // (ms) Test fire pulse duration
+    static cutter_test_pulse_t testPulse; // Test fire Pulse ms value
     static uint8_t last_block_power;                      // Track power changes for dynamic power
 
     static feedRate_t feedrate_mm_m, last_feedrate_mm_m;  // (mm/min) Track feedrate changes for dynamic power
@@ -101,12 +107,15 @@ public:
     }
   #endif
 
+  
+  volatile uint16_t TARGET_RPM = 0;       // made these two variables part of the SpindleLaser class so there always available
+  volatile uint16_t ACTUAL_RPM = 0;
   static bool isReadyForUI;               // Ready to apply power setting from the UI to OCR
+  static uint16_t power;                  //TG - the current power(always in PWM counts) to apply (in OCR) //TG 9/30/21 changed to uint16_t for more resolution
+  static uint16_t last_power_applied;     // Basic power state tracking
+  static bool spindle_use_pid;            //TG 9/27/21 added to control whether PID speed control is used or not
   static bool enable_state;
-  static uint8_t power,
-                 last_power_applied;      // Basic power state tracking
-
-  static cutter_frequency_t frequency;  // Set PWM frequency; range: 2K-50K
+  static cutter_frequency_t frequency;    // Set PWM frequency; range: 2K-50K
 
   static cutter_power_t menuPower,        // Power as set via LCD menu in PWM, Percentage or RPM
                         unitPower;        // Power as displayed status in PWM, Percentage or RPM
@@ -121,41 +130,42 @@ public:
   static bool enabled(const cutter_power_t opwr) { return opwr > 0; }
   static bool enabled() { return enable_state; }
 
-  static void apply_power(const uint8_t inpow);
+  static void apply_power(const uint16_t inpow);              //TG - 9/30/21 changed to 16-bit for hires PWM > 8 bit
 
   FORCE_INLINE static void refresh() { apply_power(power); }
+  FORCE_INLINE static void set_power(const uint16_t upwr) { power = upwr; refresh(); }  //TG - 9/30/21 changed to 16-bit for hires PWM > 8 bit
 
   #if ENABLED(SPINDLE_LASER_USE_PWM)
 
     private:
 
-    static void _set_ocr(const uint8_t ocr);
+    static void _set_ocr16(const uint16_t ocr16);         //TG - 9/30/21 customized for hires PWM 16-bit
 
     public:
 
-    static void set_ocr(const uint8_t ocr);
-    static void ocr_off();
+    static void set_ocr16(const uint16_t ocr16);          //TG - 9/30/21 customized for hires PWM 16-bit
+    static inline void set_hires_ocr_power(const uint16_t ocr) { power = ocr; set_ocr16(ocr); }  //TG - 9/30/21 customized for hires PWM 16-bit
+    static void ocr16_off();                              //TG - 9/30/21 customized for hires PWM 16-bit
 
-    /**
-     * Update output for power->OCR translation
-     */
-    static uint8_t upower_to_ocr(const cutter_power_t upwr) {
-      return uint8_t(
+    // Used to update output for power->OCR translation
+    //TG 9/30/21 changed to return 16-bit OCR. The called cpwr_to_pct() now returns a true float 
+    static inline uint16_t upower_to_ocr(const cutter_power_t upwr) {  //TG 9/30/21 changed to uint16_t for more resolution
+      return (
         #if CUTTER_UNIT_IS(PWM255)
-          upwr
+          uint16_t(upwr)
         #elif CUTTER_UNIT_IS(PERCENT)
           pct_to_ocr(upwr)
         #else
-          pct_to_ocr(cpwr_to_pct(upwr))
-        #endif
+          uint16_t(pct_to_ocr(cpwr_to_pct(upwr))) //TG - 9/30/21 both called functions have been modified to handle floats now!
+        #endif                                   
       );
     }
 
   #endif // SPINDLE_LASER_USE_PWM
 
-  /**
-   * Correct power to configured range
-   */
+    /**
+     * Correct power to configured range
+     */
   static cutter_power_t power_to_range(const cutter_power_t pwr, const uint8_t pwrUnit=_CUTTER_POWER(CUTTER_POWER_UNIT)) {
     static constexpr float
       min_pct = TERN(CUTTER_POWER_RELATIVE, 0, TERN(SPINDLE_FEATURE, round(100.0f * (SPEED_POWER_MIN) / (SPEED_POWER_MAX)), SPEED_POWER_MIN)),
@@ -178,6 +188,7 @@ public:
     return upwr;
   }
 
+
   /**
    * Enable Laser or Spindle output.
    * It's important to prevent changing the power output value during inline cutter operation.
@@ -198,7 +209,7 @@ public:
   static void set_enabled(bool enable) {
     switch (cutter_mode) {
       case CUTTER_MODE_STANDARD:
-        apply_power(enable ? TERN(SPINDLE_LASER_USE_PWM, (power ?: (unitPower ? upower_to_ocr(cpwr_to_upwr(SPEED_POWER_STARTUP)) : 0)), 255) : 0);
+        apply_power(enable ? TERN(SPINDLE_LASER_USE_PWM, (power ?: (unitPower ? upower_to_ocr(cpwr_to_upwr(SPEED_POWER_STARTUP)) : 0)), SPINDLE_LASER_PWM_RES) : 0);
         break;
       case CUTTER_MODE_CONTINUOUS:
         TERN_(LASER_FEATURE, set_inline_enabled(enable));
@@ -249,12 +260,12 @@ public:
     }
   #endif
 
-  #if HAS_MARLINUI_MENU
+  #if HAS_MARLINUI_MENU		// for Marlin Menu, not TFT screen
 
     #if ENABLED(SPINDLE_FEATURE)
       static void enable_with_dir(const bool reverse) {
         isReadyForUI = true;
-        const uint8_t ocr = TERN(SPINDLE_LASER_USE_PWM, upower_to_ocr(menuPower), 255);
+        const uint8_t ocr = TERN(SPINDLE_LASER_USE_PWM, upower_to_ocr(menuPower), SPINDLE_LASER_PWM_RES);
         if (menuPower)
           power = ocr;
         else
@@ -307,7 +318,7 @@ public:
 
     // Dynamic mode rate calculation
     static uint8_t calc_dynamic_power() {
-      if (feedrate_mm_m > 65535) return 255;    // Too fast, go always on
+      if (feedrate_mm_m > 65535) return SPINDLE_LASER_PWM_RES;    // Too fast, go always on
       uint16_t rate = uint16_t(feedrate_mm_m);  // 16 bits from the G-code parser float input
       rate >>= 8;                               // Take the G-code input e.g. F40000 and shift off the lower bits to get an OCR value from 1-255
       return uint8_t(rate);
@@ -318,7 +329,7 @@ public:
 
     // Set the power for subsequent movement blocks
     static void inline_power(const cutter_power_t cpwr) {
-      TERN(SPINDLE_LASER_USE_PWM, power = planner.laser_inline.power = cpwr, planner.laser_inline.power = cpwr > 0 ? 255 : 0);
+      TERN(SPINDLE_LASER_USE_PWM, power = planner.laser_inline.power = cpwr, planner.laser_inline.power = cpwr > 0 ? SPINDLE_LASER_PWM_RES : 0);
     }
 
   #endif // LASER_FEATURE

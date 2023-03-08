@@ -323,13 +323,17 @@
  * D... - Custom Development G-code. Add hooks to 'gcode_D.cpp' for developers to test features. (Requires MARLIN_DEV_MODE)
  *        D576 - Set buffer monitoring options. (Requires BUFFER_MONITORING)
  *
- *** "T" Codes ***
+ * //TG 9/27/21 T.Gioiosa added custom Gcode for Spindle PID control
+ * M7979 - Turn PID speed control on/off for Spindle
+ * 
+ * "T" Codes
  *
  * T0-T3 - Select an extruder (tool) by index: "T<n> F<units/min>"
  */
 
 #include "../inc/MarlinConfig.h"
 #include "parser.h"
+#include "../module/vfd.h"
 
 #if ENABLED(I2C_POSITION_ENCODERS)
   #include "../feature/encoder_i2c.h"
@@ -366,8 +370,7 @@ public:
     axis_relative = rel ? (0 LOGICAL_AXIS_GANG(
       | _BV(REL_E),
       | _BV(REL_X), | _BV(REL_Y), | _BV(REL_Z),
-      | _BV(REL_I), | _BV(REL_J), | _BV(REL_K),
-      | _BV(REL_U), | _BV(REL_V), | _BV(REL_W)
+      | _BV(REL_I), | _BV(REL_J), | _BV(REL_K)
     )) : 0;
   }
   #if HAS_EXTRUDERS
@@ -392,12 +395,13 @@ public:
 
   #define MAX_COORDINATE_SYSTEMS 9
   #if ENABLED(CNC_COORDINATE_SYSTEMS)
-    static int8_t active_coordinate_system;
+    static int8_t active_coordinate_system;   //TG 10/4/22 added this to make variable visible to other .cpp files
     static xyz_pos_t coordinate_system[MAX_COORDINATE_SYSTEMS];
     static bool select_coordinate_system(const int8_t _new);
   #endif
 
-  static millis_t previous_move_ms, max_inactive_time;
+  static millis_t previous_move_ms, max_inactive_time, stepper_inactive_time;
+
   FORCE_INLINE static bool stepper_max_timed_out(const millis_t ms=millis()) {
     return max_inactive_time && ELAPSED(ms, previous_move_ms + max_inactive_time);
   }
@@ -580,6 +584,9 @@ private:
     static void G57();
     static void G58();
     static void G59();
+    #ifdef ENABLE_G39
+      static void G39();  //TG 9/29/22 - added new code to report WCS table and current WCS
+    #endif
   #endif
 
   #if BOTH(PTC_PROBE, PTC_BED)
@@ -939,7 +946,7 @@ private:
     static void M303();
   #endif
 
-  #if ENABLED(PIDTEMPBED)
+  #if EITHER(PIDTEMPBED, PIDSPINDLE_USE_PIDTEMPBED)   //TG 9/21/21 was #if ENABLED(PIDTEMPBED), added PIDSPINDLE_USE_PIDTEMPBED
     static void M304();
     static void M304_report(const bool forReplay=true);
   #endif
@@ -1249,6 +1256,34 @@ private:
 
   static void T(const int8_t tool_index);
 
+  #if ENABLED(SPINDLE_FEATURE)    //TG - 9/27/21 added custom gcode
+    static void M7979();
+  #endif
+  #if ENABLED(SPINDLE_FEATURE)    //TG - 9/27/21 added custom gcode
+    static void M7980();
+  #endif
+  #if ENABLED(SPINDLE_FEATURE)    //TG - 9/27/21 added custom gcode
+    static void M7981();
+  #endif
+  #if ENABLED(SPINDLE_FEATURE)    //TG - 9/27/21 added custom gcode
+    static void M7982();
+  #endif
+  #if ENABLED(SPINDLE_FEATURE)    //TG - 9/27/21 added custom gcode
+    static void M7983();
+  #endif
+  #if ENABLED(SPINDLE_FEATURE)    //TG - 9/27/21 added custom gcode
+    static void M7984();
+  #endif
+    #if ENABLED(SPINDLE_FEATURE)    //TG - 9/27/21 added custom gcode
+    static void M7986();
+  #endif
+  #if ENABLED(SPINDLE_FEATURE)    //TG - 9/27/21 added custom gcode
+    static void M7900();
+  #endif
+  #if ENABLED(VFD_CONTROLLER)	    //TG 12/23/22
+    static void M7988();
+    static void M7989();
+  #endif
 };
 
 extern GcodeSuite gcode;

@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -18,6 +18,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
+ *
+ * Updated: 12/16/22
  */
 
 #include "../../inc/MarlinConfig.h"
@@ -26,7 +28,17 @@
 
 #include "../gcode.h"
 #include "../../feature/spindle_laser.h"
+#include "../../module/stepper.h"
 #include "../../module/planner.h"
+#if ENABLED(TG_I2C_SUPPORT)	//TG 12/16/22
+  #include "../../module/TG_I2C/TG_I2CSlave.h"    //TG 5/12/22 added for I2C comm with AVR Triac Controller board.
+#endif
+#if ENABLED(USE_RPM_SENSOR)
+  #include "../../module/rpmSensor/RPMTimer.h"  //TG 12/20/22 put #if clause
+#endif 
+#if ENABLED(VFD_CONTROLLER)	//TG 12/16/22
+  #include "../../module/vfd.h"
+#endif
 
 /**
  * Laser:
@@ -49,7 +61,8 @@
  *  M5 - Spindle OFF
  *
  * Parameters:
- *  S<power> - Set power. S0 will turn the spindle/laser off.
+ *  S<power> - Set power. S0 will turn the spindle/laser off, except in relative mode.
+ *  O<ocr>   - Set power and OCR (oscillator count register)
  *
  *  If no PWM pin is defined then M3/M4 just turns it on or off.
  *
@@ -75,14 +88,26 @@
  *
  *  PWM duty cycle goes from 0 (off) to 255 (always on).
  */
-void GcodeSuite::M3_M4(const bool is_M4) {
+
+/****************************************************************************************************************************
+*TG ***** NOTE: With the new AVR Triac Controller board, the actual spindle speed is controlled there, and Marlin PWM pin P1_23
+* is no longer used for speed control. The following code needs only to read the speed from M3 and M4 commands and forward
+* it to the AVR Triac Controller via TARGET_RPM variable over I2C comm.
+*
+* This is changing as of 12/16/22, the code will now have to handle different options:
+* 1= original Marlin Spindle with SPINDLE_LASER_USE_PWM enabled  to control speed
+* 2= AVR_TRIAC_CONTROLLER used for speed control and PID, RPM sensor is handled there
+* 3= VFD_CONTROLLER used for speed control, RPM sensor handled by Marlin
+*************************************************************************************************************************/
+
+void GcodeSuite::M3_M4(const bool is_M4) {      //TG set cutter.unitPower from 'S' parameter or default SPEED_POWER_STARTUP
   #if LASER_SAFETY_TIMEOUT_MS > 0
     reset_stepper_timeout(); // Reset timeout to allow subsequent G-code to power the laser (imm.)
   #endif
-
+  
   if (cutter.cutter_mode == CUTTER_MODE_STANDARD)
     planner.synchronize();   // Wait for previous movement commands (G0/G1/G2/G3) to complete before changing power
-
+  
   #if ENABLED(LASER_FEATURE)
     if (parser.seen_test('I')) {
       cutter.cutter_mode = is_M4 ? CUTTER_MODE_DYNAMIC : CUTTER_MODE_CONTINUOUS;
@@ -90,20 +115,20 @@ void GcodeSuite::M3_M4(const bool is_M4) {
       cutter.set_enabled(true);
     }
   #endif
-
-  auto get_s_power = [] {
+  //WRITE(P4_28,1);
+  auto get_s_power = [] {  //TG this lambda function inside a function gets the SXXXXX value, i.e. 7000 for S7000, and sets unitPower
     float u;
-    if (parser.seenval('S')) {
-      const float v = parser.value_float();
+    if (parser.seenval('S')) {								// speed was given
+      const float v = parser.value_float();					// v is the RPM or PWM or % Target Value from the LCD display
       u = TERN(LASER_POWER_TRAP, v, cutter.power_to_range(v));
-    }
-    else if (cutter.cutter_mode == CUTTER_MODE_STANDARD)
+	}
+    else if (cutter.cutter_mode == CUTTER_MODE_STANDARD) 	// if no S value given, use SPEED_POWER_STARTUP
       u = cutter.cpwr_to_upwr(SPEED_POWER_STARTUP);
 
-    cutter.menuPower = cutter.unitPower = u;
+	cutter.menuPower = cutter.unitPower = u;				// update menuPower for display, unitPower is RPM or PWM or %
 
     // PWM not implied, power converted to OCR from unit definition and on/off if not PWM.
-    cutter.power = TERN(SPINDLE_LASER_USE_PWM, cutter.upower_to_ocr(u), u > 0 ? 255 : 0);
+    cutter.power = TERN(SPINDLE_LASER_USE_PWM, cutter.upower_to_ocr(u), u > 0 ? SPINDLE_LASER_PWM_RES : 0);
     return u;
   };
 
@@ -115,25 +140,53 @@ void GcodeSuite::M3_M4(const bool is_M4) {
         // With power sync we only set power so it does not effect queued inline power sets
         planner.buffer_sync_block(BLOCK_BIT_LASER_PWR);                                            // Send the flag, queueing inline power
       #else
-        planner.synchronize();
+        planner.synchronize();		// Wait for previous movement commands (G0/G0/G2/G3) to complete before changing power
         cutter.inline_power(cutter.power);
       #endif
     #endif
   }
   else {
-    cutter.set_enabled(true);
+    cutter.set_enabled(true);		// turn on ENABLE signal
     get_s_power();
     cutter.apply_power(
       #if ENABLED(SPINDLE_SERVO)
         cutter.unitPower
-      #elif ENABLED(SPINDLE_LASER_USE_PWM)
-        cutter.upower_to_ocr(cutter.unitPower)
+      #elif (ENABLED(SPINDLE_LASER_USE_PWM) && cutter.spindle_use_pid == false) ////TG 9/15/21 if using PID in RPMTimer.cpp, it sets power, so skip below
+        cutter.upower_to_ocr(cutter.unitPower)				// set a PWM value
       #else
-        cutter.unitPower > 0 ? 255 : 0
+        cutter.unitPower > 0 ? SPINDLE_LASER_PWM_RES : 0	// set on=1023 or off=0
       #endif
     );
     TERN_(SPINDLE_CHANGE_DIR, cutter.set_reverse(is_M4));
   }
+
+  SpindleLaser::isReady = true;
+    
+  //TG added 5/12/22 - update TARGET_RPM variable used for I2C reply to AVR Controller request or Serial/RS485 send to VFD Controller
+  cutter.TARGET_RPM = cutter.menuPower;               
+  //TG added 9/21/21 to also set value in spindle_speed array, index 0 (there's only 1 spindle), this also echoes the Target/Actual to serial ports
+  Temperature::set_spindle_speed(0,cutter.unitPower);   
+  
+  #if ENABLED(VFD_CONTROLLER)   //TG 12/16/22 - VFD Controller needs to be sent the TARGET_RPM value and set to RUN
+          
+    uint16_t data = (10 * cutter.TARGET_RPM)/60;  // Vevor frequency specified 1 dec point so * 10
+    if (VFDpresent==true)							            // if VFD connected
+    { 
+      statusPollingAllowed = false;               // stop status polling we need the RS485 port
+      // First, set target frequency cmd to serial port to VFD and get success or fail response  
+      bool status = writeVevorVFD(VFDnum, MODBUS_WRITE_FUNC_REG, VEVOR_FREQUENCY, data);
+
+      // check is_M4 and RUN REVERSE to VFD if needed, otherwise RUN FORWARD
+      // if all good then run forward SEND TO SERIAL PORT AND OPTIONAL WAIT FOR RESPONSE
+      if (status==true) {
+        status = writeVevorVFD(VFDnum, MODBUS_WRITE_FUNC_REG, VEVOR_MAIN_CONTROL_BITS, (is_M4 ? sRUN_REV : sRUN_FWD));
+      }
+      statusPollingAllowed = true;                // allow status polling, we're done
+    }
+  
+  #endif
+
+  //WRITE(P4_28,0);
 }
 
 /**
@@ -142,15 +195,36 @@ void GcodeSuite::M3_M4(const bool is_M4) {
 void GcodeSuite::M5() {
   planner.synchronize();
   cutter.power = 0;
-  cutter.apply_power(0);                          // M5 just kills power, leaving inline mode unchanged
+  cutter.apply_power(0);                // M5 just kills power, leaving inline mode unchanged
+  cutter.set_enabled(false);            // also sets power to zero (but not unitPower!)
+  cutter.unitPower = 0;                 //TG make sure to zero the unitPower, otherwise it holds last target
+  cutter.menuPower = 0;                 //update menuPower for display, unitPower is RPM or PWM or %
+  
   if (cutter.cutter_mode != CUTTER_MODE_STANDARD) {
     if (parser.seen_test('I')) {
       TERN_(LASER_FEATURE, cutter.inline_power(cutter.power));
       cutter.set_enabled(false);                  // Needs to happen while we are in inline mode to clear inline power.
       cutter.cutter_mode = CUTTER_MODE_STANDARD;  // Switch from inline to standard mode.
     }
+  } 
+  
+  //TG added 5/12/22 - update TARGET_RPM for I2C to reply to AVR Controller request or Serial/RS485 send to VFD Controller
+  cutter.TARGET_RPM = 0;                              
+  Temperature::set_spindle_speed(0,0);  //TG added 9/24/21 to set value in spindle_speed array, index 0, 
+                                        //this also echoes the Target/Actual to serial ports
+ 
+ #if ENABLED(VFD_CONTROLLER)            //TG 12/16/22 - VFD Controller needs to be sent the TARGET_RPM value and set to STOP
+  if (VFDpresent==true)                 // if VFD connected
+  {							            
+    statusPollingAllowed = false;       // stop status polling we need the RS485 port
+    // Send STOP command to VFD 
+    bool status = writeVevorVFD(VFDnum, MODBUS_WRITE_FUNC_REG, VEVOR_MAIN_CONTROL_BITS, sRUN_STOP);
+  
+    // if not successful, send one more time
+    if (status == false)
+      status = writeVevorVFD(VFDnum, MODBUS_WRITE_FUNC_REG, VEVOR_MAIN_CONTROL_BITS, sRUN_STOP);
+    statusPollingAllowed = true;        // allow status polling, we're done
   }
-  cutter.set_enabled(false);                      // Disable enable output setting
-}
+ #endif // ENABLED(VFD_CONTROLLER)  
 
-#endif // HAS_CUTTER
+}

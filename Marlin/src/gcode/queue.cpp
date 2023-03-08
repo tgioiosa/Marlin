@@ -483,11 +483,13 @@ void GCodeQueue::get_serial_commands() {
             uint8_t checksum = 0, count = uint8_t(apos - command);
             while (count) checksum ^= command[--count];
             if (strtol(apos + 1, nullptr, 10) != checksum) {
+              // In case of error on a serial port, don't prevent other serial port from making progress
               gcode_line_error(F(STR_ERR_CHECKSUM_MISMATCH), p);
               break;
             }
           }
           else {
+            // In case of error on a serial port, don't prevent other serial port from making progress
             gcode_line_error(F(STR_ERR_NO_CHECKSUM), p);
             break;
           }

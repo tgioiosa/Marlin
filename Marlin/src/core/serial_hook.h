@@ -131,6 +131,7 @@ struct ForwardSerial : public SerialBase< ForwardSerial<SerialT> > {
   int read(serial_index_t)      { return (int)out.read(); }
   int available()               { return (int)out.available(); }
   int read()                    { return (int)out.read(); }
+  bool TXbufferEmpty()          { return (int)out.TXbufferEmpty();}   //TG 12/16/22-returns 0 if TX empty
   SerialFeature features(serial_index_t index) const  { return CALL_IF_EXISTS(SerialFeature, &out, features, index);  }
 
   ForwardSerial(const bool e, SerialT & out) : BaseClassT(e), out(out) {}

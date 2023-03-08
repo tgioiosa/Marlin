@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -4342,3 +4342,14 @@ static_assert(_PLUS_TEST(4), "HOMING_FEEDRATE_MM_M values must be positive.");
 #undef _TEST_PWM
 #undef _NUM_AXES_STR
 #undef _LOGICAL_AXES_STR
+
+/**
+ * //TG 5/25/21 Sanity check for valid LASER/SPINDLE pins assignment
+ */
+
+#if !SPINDLE_LASER_USE_FAN_HEATER_PINS && defined(HAS_TMC_UART)
+ #error "Spindle/Laser cannot use J8 pins already used by TMC_UART."
+#endif
+#if (HAS_HEATER_0  || EXTRUDERS || FAN_PIN) && SPINDLE_LASER_USE_FAN_HEATER_PINS
+ #error "Spindle/Laser cannot use Heater or Fan pins when Extruder, Bed, or Fans in use." 
+#endif

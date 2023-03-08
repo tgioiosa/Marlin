@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -56,9 +56,43 @@ typedef enum : int8_t {
   H_BOARD = HID_BOARD,
   H_CHAMBER = HID_CHAMBER,
   H_BED = HID_BED,
-  H_E0 = HID_E0, H_E1, H_E2, H_E3, H_E4, H_E5, H_E6, H_E7,
+  H_E0 = HID_E0, H_E1, H_E2, H_E3, H_E4, H_E5, H_E6, H_E7, SP_0,SP_1,SP_2,  //TG 1/17/20 added spindles at end (8,9,10)
   H_NONE = -128
 } heater_id_t;
+
+// PID storage
+typedef struct { float Kp, Ki, Kd;     } PID_t;
+typedef struct { float Kp, Ki, Kd, Kc; } PIDC_t;
+typedef struct { float Kp, Ki, Kd, Kf; } PIDF_t;
+typedef struct { float Kp, Ki, Kd, Kc, Kf; } PIDCF_t;
+
+typedef
+  #if BOTH(PID_EXTRUSION_SCALING, PID_FAN_SCALING)
+    PIDCF_t
+  #elif ENABLED(PID_EXTRUSION_SCALING)
+    PIDC_t
+  #elif ENABLED(PID_FAN_SCALING)
+    PIDF_t
+  #else
+    PID_t
+  #endif
+hotend_pid_t;
+
+#if ENABLED(PID_EXTRUSION_SCALING)
+  typedef IF<(LPQ_MAX_LEN > 255), uint16_t, uint8_t>::type lpq_ptr_t;
+#endif
+
+#define PID_PARAM(F,H) _PID_##F(TERN(PID_PARAMS_PER_HOTEND, H, 0 & H)) // Always use 'H' to suppress warning
+#define _PID_Kp(H) TERN(PIDTEMP, Temperature::temp_hotend[H].pid.Kp, NAN)
+#define _PID_Ki(H) TERN(PIDTEMP, Temperature::temp_hotend[H].pid.Ki, NAN)
+#define _PID_Kd(H) TERN(PIDTEMP, Temperature::temp_hotend[H].pid.Kd, NAN)
+#if ENABLED(PIDTEMP)
+  #define _PID_Kc(H) TERN(PID_EXTRUSION_SCALING, Temperature::temp_hotend[H].pid.Kc, 1)
+  #define _PID_Kf(H) TERN(PID_FAN_SCALING,       Temperature::temp_hotend[H].pid.Kf, 0)
+#else
+  #define _PID_Kc(H) 1
+  #define _PID_Kf(H) 0
+#endif
 
 /**
  * States for ADC reading in the ISR
@@ -144,12 +178,10 @@ enum ADCSensorState : char {
 //
 // PID
 //
-
 typedef struct { float p, i, d; } raw_pid_t;
 typedef struct { float p, i, d, c, f; } raw_pidcf_t;
 
-#if HAS_PID_HEATING
-
+#if EITHER(HAS_PID_HEATING, PIDSPINDLE_USE_PIDTEMPBED)   //TG 9/21/21 was #if ENABLED(HAS_PID_HEATING), added PIDSPINDLE_USE_PIDTEMPBED
   #define PID_K2 (1-float(PID_K1))
   #define PID_dT ((OVERSAMPLENR * float(ACTUAL_ADC_SAMPLES)) / (TEMP_TIMER_FREQUENCY))
 
@@ -325,7 +357,7 @@ struct PIDHeaterInfo : public HeaterInfo {
   typedef heater_info_t hotend_info_t;
 #endif
 #if HAS_HEATED_BED
-  #if ENABLED(PIDTEMPBED)
+  #if EITHER(PIDTEMPBED, PIDSPINDLE_USE_PIDTEMPBED)   //TG 9/21/21 was #if ENABLED(PIDTEMPBED), added PIDSPINDLE_USE_PIDTEMPBED
     typedef struct PIDHeaterInfo<PID_t> bed_info_t;
   #else
     typedef heater_info_t bed_info_t;
@@ -726,6 +758,32 @@ class Temperature {
       static celsius_float_t analog_to_celsius_redundant(const raw_adc_t raw);
     #endif
 
+    //*******************************************************************************************************
+    //TG 5/25/21 Added this section to support SPINDLE RPM features
+    #if ENABLED(SPINDLE_FEATURE)        //TG 1/17/20 added to test sending S0: messages
+      struct spindle_type
+      {
+        uint16_t target;    //TG changed from uint8_t for RPM 9/21/21
+        uint16_t actual;    // changed from uint8_t for RPM
+      };
+     
+      static spindle_type spindle_speed[SPINDLES];
+      #define SET_SPINDLES_LOOP(I) LOOP_L_N(I, SPINDLES)
+      static void set_spindle_speed(const uint8_t target, const uint16_t speed);
+      static uint16_t get_spindle_speed(const uint8_t target);
+      #if ENABLED(REPORT_SPINDLE_CHANGE)
+        static void report_spindle_speed(const uint8_t target);
+      #endif
+      static constexpr inline uint8_t spindlePercent(const uint8_t speed) { return ui8_to_percent(speed); }
+    #endif // SPINDLE_FEATURE
+     
+    static inline void zero_spindle_speeds() {
+    #if ENABLED(SPINDLE_FEATURE)
+      SET_SPINDLES_LOOP(i) set_spindle_speed(i, 0);
+    #endif
+    }
+   //*******************************************************************************************************  
+
     #if HAS_FAN
 
       static uint8_t fan_speed[FAN_COUNT];
@@ -1021,7 +1079,7 @@ class Temperature {
      */
     #if HAS_PID_HEATING
 
-      #if HAS_PID_DEBUG
+      #if ANY(PID_DEBUG, PID_BED_DEBUG, PID_CHAMBER_DEBUG)
         static bool pid_debug_flag;
       #endif
 

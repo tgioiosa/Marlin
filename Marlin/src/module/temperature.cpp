@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -24,6 +24,7 @@
  * temperature.cpp - temperature control
  */
 
+#pragma region TG - Includes and defines ****************************************************************************
 // Useful when debugging thermocouples
 //#define IGNORE_THERMOCOUPLE_ERRORS
 
@@ -36,6 +37,20 @@
 #include "endstops.h"
 #include "planner.h"
 #include "printcounter.h"
+
+#include "src/feature/spindle_laser.h"
+
+#if ENABLED(TG_I2C_SUPPORT)	                    //TG 12/16/22 put #if clause
+  #include "../module/TG_I2C/TG_I2CSlave.h"     //TG 5/12/22 added for I2C comm with AVR Triac Controller board.
+#endif
+#if ENABLED(USE_RPM_SENSOR)
+  #include "../module/rpmSensor/RPMTimer.h"     //TG 12/20/22 put #if clause
+#else
+  #include "../HAL/LPC1768/timers.h"
+#endif 
+#if ENABLED(VFD_CONTROLLER)	                    //TG 12/16/22
+  #include "vfd.h"
+#endif
 
 #if EITHER(HAS_COOLER, LASER_COOLANT_FLOW_METER)
   #include "../feature/cooler.h"
@@ -208,12 +223,14 @@
   static constexpr uint8_t heater_ttbllen_map[HOTENDS] = ARRAY_BY_HOTENDS(TEMPTABLE_0_LEN REPEAT_S(1, HOTENDS, NEXT_TEMPTABLE_LEN));
 #endif
 
-Temperature thermalManager;
+Temperature thermalManager;   //TG - create an instance of the Temperature class named thermalManager
 
 PGMSTR(str_t_thermal_runaway, STR_T_THERMAL_RUNAWAY);
 PGMSTR(str_t_temp_malfunction, STR_T_MALFUNCTION);
 PGMSTR(str_t_heating_failed, STR_T_HEATING_FAILED);
+#pragma endregion TG - end Includes and defines
 
+#pragma region TG - Macros to include the heater id in temp errors **************************************************
 /**
  * Macros to include the heater id in temp errors. The compiler's dead-code
  * elimination should (hopefully) optimize out the unused strings.
@@ -236,7 +253,9 @@ PGMSTR(str_t_heating_failed, STR_T_HEATING_FAILED);
 #endif
 #define _E_FSTR(h,N) ((HOTENDS) > N && (h) == N) ? F(STR_E##N) :
 #define HEATER_FSTR(h) _BED_FSTR(h) _CHAMBER_FSTR(h) _COOLER_FSTR(h) _E_FSTR(h,1) _E_FSTR(h,2) _E_FSTR(h,3) _E_FSTR(h,4) _E_FSTR(h,5) _E_FSTR(h,6) _E_FSTR(h,7) F(STR_E0)
+#pragma endregion TG - end Macros to include the heater id in temp errors
 
+#pragma region TG - Initialize MAX TC objects/SPI
 //
 // Initialize MAX TC objects/SPI
 //
@@ -306,11 +325,10 @@ PGMSTR(str_t_heating_failed, STR_T_HEATING_FAILED);
   #undef MAXTC_INIT
 
 #endif
+#pragma endregion
 
-/**
- * public:
- */
-
+// public: *********************************************************************************************
+#pragma region TG - public variables and structures definitions *****************************************************
 #if ENABLED(NO_FAN_SLOWING_IN_PID_TUNING)
   bool Temperature::adaptive_fan_slowing = true;
 #endif
@@ -451,7 +469,43 @@ PGMSTR(str_t_heating_failed, STR_T_HEATING_FAILED);
 
   #endif
 
-#endif // HAS_FAN
+
+
+//==========================================================================================
+//               Spindle speed and report functions 
+//TG 5/25/21     Added this section to support SPINDLE RPM features
+//==========================================================================================
+#if ENABLED(SPINDLE_FEATURE)    //TG 1/17/20 added this for sending spindle speed S0: messages
+   extern Temperature::spindle_type Temperature::spindle_speed[SPINDLES];
+
+  // Set the desired spindle speed for an index
+  void Temperature::set_spindle_speed(uint8_t target, uint16_t speed) {
+    if (target >= SPINDLES) return;
+
+    spindle_speed[target].target = speed; // set desired speed
+    TERN_(REPORT_SPINDLE_CHANGE, report_spindle_speed(target));
+  }
+
+  // routine to copy measured RPM to spindle_speed[].actual
+  uint16_t Temperature::get_spindle_speed(uint8_t target) {
+    if (target >= SPINDLES) return 0;
+    spindle_speed[target].actual = cutter.ACTUAL_RPM;  //TG 12/24/22 supplied by rpmTimer.cpp or from I2C as ACTUAL_RPM
+    return spindle_speed[target].actual;
+}
+
+  #if ENABLED(REPORT_SPINDLE_CHANGE)
+    /**
+     * Report spindle speed
+     */
+    void Temperature::report_spindle_speed(const uint8_t target) {
+      if (target >= SPINDLES) return;
+      PORT_REDIRECT(SerialMask::All);
+      //SERIAL_ECHOLNPAIR_F("M3 P", target, " S", spindle_speed[target].actual, " Target", spindle_speed[target].target);
+      SERIAL_ECHOLNPGM("Spindle P", target, " A:", spindle_speed[target].actual, " T:", spindle_speed[target].target);
+    }
+  #endif
+#endif // ENABLED SPINDLE_FEATURE
+//TG - end Spindle speed *******************************************************************************
 
 #if WATCH_HOTENDS
   hotend_watch_t Temperature::watch_hotend[HOTENDS]; // = { { 0 } }
@@ -527,10 +581,10 @@ PGMSTR(str_t_heating_failed, STR_T_HEATING_FAILED);
 #if ENABLED(PID_EXTRUSION_SCALING)
   int16_t Temperature::lpq_len; // Initialized in settings.cpp
 #endif
+#pragma endregion TG - public variables and structures definitions
 
-/**
- * private:
- */
+// private: ********************************************************************************************
+#pragma region TG - private variables and structures definitions ****************************************************
 
 volatile bool Temperature::raw_temps_ready = false;
 
@@ -589,11 +643,11 @@ volatile bool Temperature::raw_temps_ready = false;
 #if ENABLED(PROBING_HEATERS_OFF)
   bool Temperature::paused_for_probing;
 #endif
+#pragma endregion TG - private variables and structures definitions
 
-/**
- * public:
- * Class and Instance Methods
- */
+// public: Class and Instance Methods************************************************************************
+
+#pragma region TG - PID Autotune ************************************************************************************
 
 #if HAS_PID_HEATING
 
@@ -1119,6 +1173,9 @@ int16_t Temperature::getHeaterPower(const heater_id_t heater_id) {
   }
 }
 
+#pragma endregion TG - PID Autotune
+
+#pragma region TG - AutoFan *****************************************************************************************
 #define _EFANOVERLAP(A,B) _FANOVERLAP(E##A,B)
 
 #if HAS_AUTO_FAN
@@ -1235,10 +1292,9 @@ int16_t Temperature::getHeaterPower(const heater_id_t heater_id) {
   }
 
 #endif // HAS_AUTO_FAN
+#pragma endregion TG - AutoFan
 
-//
-// Temperature Error Handlers
-//
+#pragma region TG - Temperature Error Handlers **********************************************************************
 
 inline void loud_kill(FSTR_P const lcd_msg, const heater_id_t heater_id) {
   marlin_state = MF_KILLED;
@@ -1331,9 +1387,11 @@ void Temperature::min_temp_error(const heater_id_t heater_id) {
   #endif
   _temp_error(heater_id, F(STR_T_MINTEMP), GET_TEXT_F(MSG_ERR_MINTEMP));
 }
+#pragma endregion TG - end Temperature Error Handlers ***************************************************************
 
+#pragma region TG - PID handling standard HotEnd, Bed, Chamber ******************************************************
 #if HAS_PID_DEBUG
-  bool Temperature::pid_debug_flag; // = false
+  bool Temperature::pid_debug_flag; // = 0
 #endif
 
 #if HAS_PID_HEATING
@@ -1843,6 +1901,10 @@ void Temperature::min_temp_error(const heater_id_t heater_id) {
 
 #endif // HAS_COOLER
 
+#pragma endregion TG - end PID handling *****************************************************************************
+
+#pragma region TG - Temperature::manage_heater() ********************************************************************
+
 /**
  * Manage heating activities for extruder hot-ends and a heated bed
  *  - Acquire updated temperature readings
@@ -1941,6 +2003,9 @@ void Temperature::task() {
 
   UNUSED(ms);
 }
+#pragma endregion TG - end Temperature::manage_heater() *************************************************************
+
+#pragma region TG - Thermistor setup, macro to scan thermistor tables, and functions for raw->celsius conversion ****
 
 #define TEMP_AD595(RAW)  ((RAW) * 5.0 * 100.0 / float(HAL_ADC_RANGE) / (OVERSAMPLENR) * (TEMP_SENSOR_AD595_GAIN) + TEMP_SENSOR_AD595_OFFSET)
 #define TEMP_AD8495(RAW) ((RAW) * 6.6 * 100.0 / float(HAL_ADC_RANGE) / (OVERSAMPLENR) * (TEMP_SENSOR_AD8495_GAIN) + TEMP_SENSOR_AD8495_OFFSET)
@@ -1967,7 +2032,7 @@ void Temperature::task() {
   }                                                                       \
 }while(0)
 
-#if HAS_USER_THERMISTORS
+#if HAS_USER_THERMISTORS  //TG - if has any custom user defined thermistors
 
   user_thermistor_t Temperature::user_thermistor[USER_THERMISTORS]; // Initialized by settings.load()
 
@@ -2449,6 +2514,7 @@ void Temperature::updateTemperaturesFromRawValues() {
 
 } // Temperature::updateTemperaturesFromRawValues
 
+#pragma region TG - Temperature::init() *****************************************************************************
 /**
  * Initialize the temperature manager
  *
@@ -2673,7 +2739,12 @@ void Temperature::init() {
     SET_INPUT_PULLUP(JOY_EN_PIN);
   #endif
 
-  HAL_timer_start(MF_TIMER_TEMP, TEMP_TIMER_FREQUENCY);
+  HAL_timer_start(MF_TIMER_TEMP, TEMP_TIMER_FREQUENCY);  //TG sets up the TEMP_TIMER (Timer 1) to 1000Hz
+  
+  //TG 9/8/21 - used to add an MR1 match ISR to TEMP_TIMER for faster calls to RPM tick
+  #ifdef RPM_TICK_USES_TEMP_TIMER_FREQUENCY_2
+    setupFastRPMTickTimer();    
+  #endif
   ENABLE_TEMPERATURE_INTERRUPT();
 
   #if HAS_AUTO_FAN_0
@@ -2811,7 +2882,9 @@ void Temperature::init() {
     );
   #endif
 }
+#pragma endregion TG - end Temperature::init() *************************************************************************
 
+#pragma region TG - Thermal Runaway State Machine *******************************************************************
 #if HAS_THERMAL_PROTECTION
 
   #pragma GCC diagnostic push
@@ -2986,7 +3059,9 @@ void Temperature::disable_all_heaters() {
     WRITE_HEATER_COOLER(LOW);
   #endif
 }
+#pragma endregion TG - Thermal Runaway State Machine
 
+#pragma region TG - Print Job AutoStart *****************************************************************************
 #if ENABLED(PRINTJOB_TIMER_AUTOSTART)
 
   bool Temperature::auto_job_over_threshold() {
@@ -3008,8 +3083,10 @@ void Temperature::disable_all_heaters() {
   }
 
 #endif // PRINTJOB_TIMER_AUTOSTART
+#pragma endregion TG - Print Job AutoStart
 
-#if ENABLED(PROBING_HEATERS_OFF)
+#pragma region TG - Heaters OFF when Probing ************************************************************************
+#if ENABLED(PROBING_HEATERS_OFF)        //TG - if enabled, turn off heaters when probing Z-axis
 
   void Temperature::pause_heaters(const bool p) {
     if (p != paused_for_probing) {
@@ -3026,8 +3103,10 @@ void Temperature::disable_all_heaters() {
   }
 
 #endif // PROBING_HEATERS_OFF
+#pragma endregion TG - Heaters OFF when Probing
 
-#if EITHER(SINGLENOZZLE_STANDBY_TEMP, SINGLENOZZLE_STANDBY_FAN)
+#pragma region TG - Any multi-extruder that shares a single nozzle **************************************************
+#if EITHER(SINGLENOZZLE_STANDBY_TEMP, SINGLENOZZLE_STANDBY_FAN) //TG - For Cyclops or any "multi-extruder" that shares a single nozzle.
 
   void Temperature::singlenozzle_change(const uint8_t old_tool, const uint8_t new_tool) {
     #if ENABLED(SINGLENOZZLE_STANDBY_FAN)
@@ -3046,8 +3125,10 @@ void Temperature::disable_all_heaters() {
   }
 
 #endif // SINGLENOZZLE_STANDBY_TEMP || SINGLENOZZLE_STANDBY_FAN
+#pragma endregion TG - Any multi-extruder that shares a single nozzle
 
-#if HAS_MAX_TC
+#pragma region TG - If using MAXIM temperature sensor chips *********************************************************
+#if HAS_MAX_TC                          //TG - if using MAXIM temperature sensor chips
 
   #ifndef THERMOCOUPLE_MAX_ERRORS
     #define THERMOCOUPLE_MAX_ERRORS 15
@@ -3220,7 +3301,9 @@ void Temperature::disable_all_heaters() {
   }
 
 #endif // HAS_MAX_TC
+#pragma endregion TG - Any multi-extruder that shares a single nozzle
 
+#pragma region TG - Raw temperature Updates *************************************************************************
 /**
  * Update raw temperatures
  *
@@ -3293,7 +3376,9 @@ void Temperature::readings_ready() {
   TERN_(HAS_JOY_ADC_Y, joystick.y.reset());
   TERN_(HAS_JOY_ADC_Z, joystick.z.reset());
 }
+#pragma endregion TG - end raw temerature Updates *******************************************************************
 
+#pragma region TG - HAL Temperature ISR Setup ***********************************************************************
 /**
  * Timer 0 is shared with millies so don't change the prescaler.
  *
@@ -3311,12 +3396,18 @@ void Temperature::readings_ready() {
  */
 HAL_TEMP_TIMER_ISR() {
   HAL_timer_isr_prologue(MF_TIMER_TEMP);
+  //SBI(TEMP_TIMER_PTR->IR, SBIT_MR0);              //TG 9/8/21 resets IR flag for match interrupt 0, does same as HAL_timer_isr_prologue()
+  #if ENABLED(USE_RPM_SENSOR)                       //TG 12/20/21 added #if 
+    RPM_tick();                                     // call RPM code every 1ms - only if enabled
+  #endif
 
-  Temperature::isr();
-
+  Temperature::isr();                               // call Marlin Temperature handler every 1ms
   HAL_timer_isr_epilogue(MF_TIMER_TEMP);
 }
 
+#pragma endregion TG - end HAL Temperature ISR Setup ****************************************************************
+
+#pragma region TG - The SoftPWM class ******************************************************************************* 
 #if ENABLED(SLOW_PWM_HEATERS) && !defined(MIN_STATE_TIME)
   #define MIN_STATE_TIME 16 // MIN_STATE_TIME * 65.5 = time in milliseconds
 #endif
@@ -3324,8 +3415,8 @@ HAL_TEMP_TIMER_ISR() {
 class SoftPWM {
 public:
   uint8_t count;
-  inline bool add(const uint8_t mask, const uint8_t amount) {
-    count = (count & mask) + amount; return (count > mask);
+  inline bool add(const uint8_t mask, const uint8_t amount) {   //TG - this func inc's count & mask by amount and returns 1 or 0
+    count = (count & mask) + amount; return (count > mask);     //  this is how the PWM duty cycle is determined
   }
   #if ENABLED(SLOW_PWM_HEATERS)
     bool state_heater;
@@ -3341,7 +3432,9 @@ public:
     }
   #endif
 };
+#pragma endregion TG - end The SoftPWM class ************************************************************************
 
+#pragma region TG - HAL Temperature ISR *****************************************************************************
 /**
  * Handle various ~1kHz tasks associated with temperature
  *  - Check laser safety timeout
@@ -3398,6 +3491,7 @@ void Temperature::isr() {
 
   #if DISABLED(SLOW_PWM_HEATERS)
 
+    //TG - define macro to switch PWM high or low (according to soft_pwm_amount) for hotend, heated_bed, heated_chamber, cooler, or fan_soft_pwm
     #if ANY(HAS_HOTEND, HAS_HEATED_BED, HAS_HEATED_CHAMBER, HAS_COOLER, FAN_SOFT_PWM)
       constexpr uint8_t pwm_mask = TERN0(SOFT_PWM_DITHER, _BV(SOFT_PWM_SCALE) - 1);
       #define _PWM_MOD(N,S,T) do{                           \
@@ -3407,9 +3501,9 @@ void Temperature::isr() {
     #endif
 
     /**
-     * Standard heater PWM modulation
+     * Standard heater PWM modulation   //TG - pwm_count ranges 0 - 127 max (128 max step resolution when SOFT_PWM_SCALE=0)
      */
-    if (pwm_count_tmp >= 127) {
+    if (pwm_count_tmp >= 127) {   // reset pwm_count when reached 127
       pwm_count_tmp -= 127;
 
       #if HAS_HOTEND
@@ -3417,8 +3511,8 @@ void Temperature::isr() {
         REPEAT(HOTENDS, _PWM_MOD_E);
       #endif
 
-      #if HAS_HEATED_BED
-        _PWM_MOD(BED, soft_pwm_bed, temp_bed);
+      #if HAS_HEATED_BED                        //TG - soft_pwm_bed is Soft_PWM Class instance, temp_bed is heater_info_t structure
+        _PWM_MOD(BED,soft_pwm_bed,temp_bed);    //TG - switches PWM high or low according to soft_pwm_amount using macro    
       #endif
 
       #if HAS_HEATED_CHAMBER
@@ -3435,6 +3529,8 @@ void Temperature::isr() {
           WRITE(CONTROLLER_FAN_PIN, soft_pwm_controller.add(pwm_mask, soft_pwm_controller_speed));
         #endif
 
+      #if ENABLED(FAN_SOFT_PWM) // resides in Configuration.h
+        //TG - define macro to switch PWM high or low for software_pwm fans
         #define _FAN_PWM(N) do{                                     \
           uint8_t &spcf = soft_pwm_count_fan[N];                    \
           spcf = (spcf & pwm_mask) + (soft_pwm_amount_fan[N] >> 1); \
@@ -3468,6 +3564,7 @@ void Temperature::isr() {
       #endif
     }
     else {
+      //TG - macro to force respective PWM pin to zero while it's counter<=pwm_count_tmp
       #define _PWM_LOW(N,S) do{ if (S.count <= pwm_count_tmp) WRITE_HEATER_##N(LOW); }while(0)
       #if HAS_HOTEND
         #define _PWM_LOW_E(N) _PWM_LOW(N, soft_pwm_hotend[N]);
@@ -3525,7 +3622,7 @@ void Temperature::isr() {
     // 3:                / 16 =  61.0352 Hz
     // 4:                /  8 = 122.0703 Hz
     // 5:                /  4 = 244.1406 Hz
-    pwm_count = pwm_count_tmp + _BV(SOFT_PWM_SCALE);
+    pwm_count = pwm_count_tmp + _BV(SOFT_PWM_SCALE);  // increment count by 1,2,4,8,16,32 (2^SOFT_PWM_SCALE)
 
   #else // SLOW_PWM_HEATERS
 
@@ -3663,7 +3760,7 @@ void Temperature::isr() {
   #endif // SLOW_PWM_HEATERS
 
   //
-  // Update lcd buttons 488 times per second
+  // Update lcd buttons 488 times per second (toggles do_buttons to divide by 2)
   //
   static bool do_buttons;
   if ((do_buttons ^= true)) ui.update_buttons();
@@ -3878,9 +3975,13 @@ void Temperature::isr() {
   // Periodically call the planner timer service routine
   planner.isr();
 }
+#pragma endregion TG - end Temperature::isr() ***********************************************************************
+
+#pragma region TG - support functions for reporting temps, autoreporting, wait_for_heating **************************
 
 #if HAS_TEMP_SENSOR
-  /**
+
+  /** //TG this is what reports temperatures for M105, AUTOREPORT
    * Print a single heater state in the form:
    *        Bed: " B:nnn.nn /nnn.nn"
    *    Chamber: " C:nnn.nn /nnn.nn"
@@ -3889,6 +3990,7 @@ void Temperature::isr() {
    *  Redundant: " R:nnn.nn /nnn.nn"
    *   Extruder: " T0:nnn.nn /nnn.nn"
    *   With ADC: " T0:nnn.nn /nnn.nn (nnn.nn)"
+   *With Spindle:" S0:nnn.nn /nnn.nn"   //TG 5/25/21 Added spindle speed
    */
   static void print_heater_state(const heater_id_t e, const_celsius_float_t c, const_celsius_float_t t
     OPTARG(SHOW_TEMP_ADC_VALUES, const float r)
@@ -3899,6 +4001,9 @@ void Temperature::isr() {
         #if HAS_TEMP_HOTEND
           k = 'T'; break;
         #endif
+      #if ENABLED(SPINDLE_FEATURE)    //TG 1/17/20 added this for S0: rpm messages
+         case SP_0: case SP_1:case SP_2: k='S'; break;
+      #endif
       #if HAS_TEMP_BED
         case H_BED: k = 'B'; break;
       #endif
@@ -3919,8 +4024,13 @@ void Temperature::isr() {
       #endif
     }
     SERIAL_CHAR(' ', k);
-    #if HAS_MULTI_HOTEND
-      if (e >= 0) SERIAL_CHAR('0' + e);
+    #if EITHER(HAS_MULTI_HOTEND,SPINDLE_FEATURE) //TG 1/17/20 added the SPINDLE term
+      if (k=='S') {
+        if (e >= 8) SERIAL_CHAR('0' + e-8);   // spindles (8 - 10) come after hotends (0 - 7) 
+      }
+    else {
+        if (e >= 0) SERIAL_CHAR('0' + e);     // heat probe, redundant probe, bed, chamber all have e < 0
+      }
     #endif
     #ifdef SERIAL_FLOAT_PRECISION
       #define SFP _MIN(SERIAL_FLOAT_PRECISION, 2)
@@ -3966,6 +4076,15 @@ void Temperature::isr() {
     #if HAS_MULTI_HOTEND
       HOTEND_LOOP() print_heater_state((heater_id_t)e, degHotend(e), degTargetHotend(e) OPTARG(SHOW_TEMP_ADC_VALUES, rawHotendTemp(e)));
     #endif
+
+    #if ENABLED(SPINDLE_FEATURE)    //TG 1/17/20 added this to test S0: messages
+      GET_SPINDLES_LOOP() get_spindle_speed(e);
+      GET_SPINDLES_LOOP() print_heater_state((heater_id_t)(e+8),spindle_speed[e].target, spindle_speed[e].actual   // create Sn:t/c mess
+        OPTARG(SHOW_TEMP_ADC_VALUES, rawHotendTemp(e))
+        ); 
+    #endif
+
+
     SERIAL_ECHOPGM(" @:", getHeaterPower((heater_id_t)target_extruder));
     #if HAS_HEATED_BED
       SERIAL_ECHOPGM(" B@:", getHeaterPower(H_BED));
@@ -3985,11 +4104,19 @@ void Temperature::isr() {
     #endif
   }
 
+  //===================================================================================================
+  //TG M155 Autoreport code, it sends the string " B:25.00 /0.00 S0:0.00 /0.00 @:0 B@:0 WCS: -1 VFD: 0"
+  //===================================================================================================
   #if ENABLED(AUTO_REPORT_TEMPERATURES)
     AutoReporter<Temperature::AutoReportTemp> Temperature::auto_reporter;
-    void Temperature::AutoReportTemp::report() {
+    void Temperature::AutoReportTemp::report() 
+    { 
       print_heater_states(active_extruder OPTARG(HAS_TEMP_REDUNDANT, ENABLED(AUTO_REPORT_REDUNDANT)));
-      SERIAL_EOL();
+      #ifdef REPORT_WCS  //TG 10/4/22 appended WCS to AutoReport string
+        serial_echopair_P(" WCS: ", gcode.active_coordinate_system); 
+      #endif
+      //TG 2/28/23 appended VFD connection state to AutoReport string
+      serial_echolnpair_P(" VFD: ", VFDpresent); 
     }
   #endif
 
@@ -4552,3 +4679,4 @@ void Temperature::isr() {
   #endif // HAS_COOLER
 
 #endif // HAS_TEMP_SENSOR
+#pragma endregion TG - end support functions for reporting temps, autoreporting, wait_for_heating *******************

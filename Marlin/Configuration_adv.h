@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -31,6 +31,16 @@
  * Basic settings can be found in Configuration.h
  */
 #define CONFIGURATION_ADV_H_VERSION 02010200
+
+//===========================================================================
+//=================== TG CUSTOM Version Settings ============================
+//===========================================================================
+// @section TGcustom
+
+//TG enable this to append current WCS info at end of temperature autoreport
+#define REPORT_WCS
+//TG NEW G39 = output Active Workspace, G39 T = output table of all workspaces, G39 P = current position in physical and logical units
+#define ENABLE_G39
 
 // @section develop
 
@@ -170,7 +180,14 @@
 #endif
 
 /**
- * Thermocouple Options — for MAX6675 (-2), MAX31855 (-3), and MAX31865 (-5).
+ * Configuration options for MAX Thermocouples (-2, -3, -5).
+ *   FORCE_HW_SPI:   Ignore SCK/MOSI/MISO pins and just use the CS pin & default SPI bus.
+ *   MAX31865_WIRES: Set the number of wires for the probe connected to a MAX31865 board, 2-4. Default: 2
+ *   MAX31865_50HZ:  Enable 50Hz filter instead of the default 60Hz.
+ *   MAX31865_USE_READ_ERROR_DETECTION: Detects random read errors from value spikes (a 20°C difference in less than 1sec)
+ *   MAX31865_USE_AUTO_MODE: Faster and more frequent reads than 1-shot, but bias voltage always on, slightly affecting RTD temperature.
+ *   MAX31865_MIN_SAMPLING_TIME_MSEC: in 1-shot mode, the minimum time between subsequent reads. This reduces the effect of bias voltage by leaving the sensor unpowered for longer intervals.
+ *   MAX31865_WIRE_OHMS: In 2-wire configurations, manually set the wire resistance for more accurate readings
  */
 //#define TEMP_SENSOR_FORCE_HW_SPI                // Ignore SCK/MOSI/MISO pins; use CS and the default SPI bus.
 //#define MAX31865_SENSOR_WIRES_0 2               // (2-4) Number of wires for the probe connected to a MAX31865 board.
@@ -649,6 +666,7 @@
 #define E7_AUTO_FAN_PIN -1
 #define CHAMBER_AUTO_FAN_PIN -1
 #define COOLER_AUTO_FAN_PIN -1
+#define COOLER_FAN_PIN -1
 
 #define EXTRUDER_AUTO_FAN_TEMPERATURE 50
 #define EXTRUDER_AUTO_FAN_SPEED 255   // 255 == full speed
@@ -799,6 +817,16 @@
  * The following explanations for X also apply to Y and Z multi-stepper setups.
  * Endstop offsets may be changed by 'M666 X<offset> Y<offset> Z<offset>' and stored to EEPROM.
  *
+ * This section will allow you to use extra E drivers to drive a second motor for X, Y, or Z axes.
+* For example, set X_DUAL_STEPPER_DRIVERS setting to use a second motor. If the motors need to
+ * spin in opposite directions set INVERT_X2_VS_X_DIR. If the second motor needs its own endstop
+ * set X_DUAL_ENDSTOPS. This can adjust for "racking." Use X2_USE_ENDSTOP to set the endstop plug
+ * that should be used for the second endstop. Extra endstops will appear in the output of 'M119'.
+ *
+ * Use X_DUAL_ENDSTOP_ADJUSTMENT to adjust for mechanical imperfection. After homing both motors
+ * this offset is applied to the X2 motor. To find the offset home the X axis, and measure the error
+ * in X2. Dual endstop offsets can be set at runtime with 'M666 X<offset> Y<offset> Z<offset>'.
+ *
  * - Enable INVERT_X2_VS_X_DIR if the X2 motor requires an opposite DIR signal from X.
  *
  * - Enable X_DUAL_ENDSTOPS if the second motor has its own endstop, with adjustable offset.
@@ -813,8 +841,8 @@
  *   - Use X2_USE_ENDSTOP to set the endstop plug by name. (_XMIN_, _XMAX_, _YMIN_, _YMAX_, _ZMIN_, _ZMAX_)
  */
 #if HAS_X2_STEPPER && DISABLED(DUAL_X_CARRIAGE)
-  //#define INVERT_X2_VS_X_DIR        // X2 direction signal is the opposite of X
-  //#define X_DUAL_ENDSTOPS           // X2 has its own endstop
+  #define INVERT_X2_VS_X_DIR        // X2 direction signal is the opposite of X  //TG 12/30/20
+  #define X_DUAL_ENDSTOPS           // X2 has its own endstop
   #if ENABLED(X_DUAL_ENDSTOPS)
     #define X2_USE_ENDSTOP    _XMAX_  // X2 endstop board plug. Don't forget to enable USE_*_PLUG.
     #define X2_ENDSTOP_ADJUSTMENT  0  // X2 offset relative to X endstop
@@ -822,8 +850,8 @@
 #endif
 
 #if HAS_DUAL_Y_STEPPERS
-  //#define INVERT_Y2_VS_Y_DIR        // Y2 direction signal is the opposite of Y
-  //#define Y_DUAL_ENDSTOPS           // Y2 has its own endstop
+  #define INVERT_Y2_VS_Y_DIR    // Enable if Y2 direction signal is opposite of Y
+  #define Y_DUAL_ENDSTOPS		// Y2 has its own endstop //TG 12/30/2020
   #if ENABLED(Y_DUAL_ENDSTOPS)
     #define Y2_USE_ENDSTOP    _YMAX_  // Y2 endstop board plug. Don't forget to enable USE_*_PLUG.
     #define Y2_ENDSTOP_ADJUSTMENT  0  // Y2 offset relative to Y endstop
@@ -860,9 +888,8 @@
 // Drive the E axis with two synchronized steppers
 //#define E_DUAL_STEPPER_DRIVERS
 #if ENABLED(E_DUAL_STEPPER_DRIVERS)
-  //#define INVERT_E1_VS_E0_DIR       // E direction signals are opposites
+  //#define INVERT_E1_VS_E0_DIR   // Enable if the E motors need opposite DIR states
 #endif
-
 // Activate a solenoid on the active extruder with M380. Disable all with M381.
 // Define SOL0_PIN, SOL1_PIN, etc., for each extruder that has a solenoid.
 //#define EXT_SOLENOID
@@ -1117,10 +1144,10 @@
  * Set DISABLE_INACTIVE_? 'true' to shut down axis steppers after an idle period.
  * The Deactive Time can be overridden with M18 and M84. Set to 0 for No Timeout.
  */
-#define DEFAULT_STEPPER_DEACTIVE_TIME 120
+#define DEFAULT_STEPPER_DEACTIVE_TIME 1200	//TG 12/30/2020 was 120
 #define DISABLE_INACTIVE_X true
 #define DISABLE_INACTIVE_Y true
-#define DISABLE_INACTIVE_Z true  // Set 'false' if the nozzle could fall onto your printed part!
+#define DISABLE_INACTIVE_Z false  	//TG 12/30/2020 Set 'false' if the nozzle could fall onto your printed part!
 #define DISABLE_INACTIVE_I true
 #define DISABLE_INACTIVE_J true
 #define DISABLE_INACTIVE_K true
@@ -1149,7 +1176,7 @@
  * See https://hydraraptor.blogspot.com/2010/12/frequency-limit.html
  * Use M201 F<freq> G<min%> to change limits at runtime.
  */
-//#define XY_FREQUENCY_LIMIT      10 // (Hz) Maximum frequency of small zigzag infill moves. Set with M201 F<hertz>.
+//#define XY_FREQUENCY_LIMIT      10 	//TG 12/30/2020 (Hz) Maximum frequency of small zigzag infill moves. Set with M201 F<hertz>.
 #ifdef XY_FREQUENCY_LIMIT
   #define XY_FREQUENCY_MIN_PERCENT 5 // (percent) Minimum FR percentage to apply. Set with M201 G<min%>.
 #endif
@@ -1270,7 +1297,7 @@
  * vibration and surface artifacts. The algorithm adapts to provide the best possible step smoothing at the
  * lowest stepping frequencies.
  */
-//#define ADAPTIVE_STEP_SMOOTHING
+#define ADAPTIVE_STEP_SMOOTHING	//TG 12/30/2020
 
 /**
  * Custom Microstepping
@@ -1344,8 +1371,8 @@
 
 // @section lcd
 
-#if HAS_MANUAL_MOVE_MENU
-  #define MANUAL_FEEDRATE { 50*60, 50*60, 4*60, 2*60 } // (mm/min) Feedrates for manual moves along X, Y, Z, E from panel
+#if ANY(HAS_LCD_MENU, EXTENSIBLE_UI, HAS_DWIN_E3V2)
+  #define MANUAL_FEEDRATE { 50*60, 50*60, 4*60 } // (mm/min) Feedrates for manual moves along X, Y, Z, E from panel
   #define FINE_MANUAL_MOVE 0.025    // (mm) Smallest manual move (< 0.1mm) applying to Z on most machines
   #if IS_ULTIPANEL
     #define MANUAL_E_MOVES_RELATIVE // Display extruder move distance rather than "position"
@@ -1372,6 +1399,7 @@
 //
 //#define LCD_BACKLIGHT_TIMEOUT_MINS 1  // (minutes) Timeout before turning off the backlight
 
+// Add Probe Z Offset calibration to the Z Probe Offsets menu
 #if HAS_BED_PROBE && EITHER(HAS_MARLINUI_MENU, HAS_TFT_LVGL_UI)
   //#define PROBE_OFFSET_WIZARD       // Add a Probe Z Offset calibration option to the LCD menu
   #if ENABLED(PROBE_OFFSET_WIZARD)
@@ -1422,14 +1450,32 @@
 
 #endif // HAS_MARLINUI_MENU
 
+
+    #if ENABLED(AUTO_BED_LEVELING_BILINEAR)
+      // Add a calibration procedure in the Probe Offsets menu
+      // to compensate for twist in the X-axis.
+      //#define X_AXIS_TWIST_COMPENSATION
+      #if ENABLED(X_AXIS_TWIST_COMPENSATION)
+        /**
+         * Enable to init the Probe Z-Offset when starting the Wizard.
+         * Use a height slightly above the estimated nozzle-to-probe Z offset.
+         * For example, with an offset of -5, consider a starting height of -4.
+         */
+        #define XATC_START_Z 0.0
+        #define XATC_MAX_POINTS 3             // Number of points to probe in the wizard
+        #define XATC_Y_POSITION Y_CENTER      // (mm) Y position to probe
+      #endif
+    #endif
+  #endif
+
 #if ANY(HAS_DISPLAY, DWIN_LCD_PROUI, DWIN_CREALITY_LCD_JYERSUI)
   //#define SOUND_MENU_ITEM   // Add a mute option to the LCD menu
   #define SOUND_ON_DEFAULT    // Buzzer/speaker default enabled state
 #endif
 
 #if EITHER(HAS_DISPLAY, DWIN_LCD_PROUI)
-  // The timeout to return to the status screen from sub-menus
-  //#define LCD_TIMEOUT_TO_STATUS 15000   // (ms)
+  // The timeout (in ms) to return to the status screen from sub-menus
+#define LCD_TIMEOUT_TO_STATUS 180000	//TG 12/30/2020
 
   #if ENABLED(SHOW_BOOTSCREEN)
     #define BOOTSCREEN_TIMEOUT 4000       // (ms) Total Duration to display the boot screen(s)
@@ -1439,8 +1485,7 @@
   #endif
 
   // Scroll a longer status message into view
-  //#define STATUS_MESSAGE_SCROLLING
-
+  #define STATUS_MESSAGE_SCROLLING  //TG 12/30/2020
   // Apply a timeout to low-priority status messages
   //#define STATUS_MESSAGE_TIMEOUT_SEC 30 // (seconds)
 
@@ -1449,6 +1494,17 @@
 
   // Show the E position (filament used) during printing
   //#define LCD_SHOW_E_TOTAL
+
+
+  // Include a page of printer information in the LCD Main Menu
+  #define LCD_INFO_MENU //TG 12/30/2020
+  #if ENABLED(LCD_INFO_MENU)
+    //#define LCD_PRINTER_INFO_IS_BOOTSCREEN // Show bootscreen(s) instead of Printer Info pages
+  #endif
+
+  // BACK menu items keep the highlight at the top
+  #define TURBO_BACK_MENU_ITEM //TG 12/30/2020
+
 
   /**
    * LED Control Menu
@@ -1490,6 +1546,9 @@
   #endif
 #endif
 
+  // Insert a menu for preheating at the top level to allow for quick access
+  //#define PREHEAT_SHORTCUT_MENU_ITEM
+
 // LCD Print Progress options. Multiple times may be displayed in turn.
 #if HAS_DISPLAY && EITHER(SDSUPPORT, SET_PROGRESS_MANUALLY)
   #define SHOW_PROGRESS_PERCENT           // Show print progress percentage (doesn't affect progress bar)
@@ -1501,11 +1560,11 @@
   //#define PRINT_PROGRESS_SHOW_DECIMALS  // Show/report progress with decimal digits, not all UIs support this
 
   #if EITHER(HAS_MARLINUI_HD44780, IS_TFTGLCD_PANEL)
-    //#define LCD_PROGRESS_BAR            // Show a progress bar on HD44780 LCDs for SD printing
+    #define LCD_PROGRESS_BAR            //TG 12/30/2020 Show a progress bar on HD44780 LCDs for SD printing
     #if ENABLED(LCD_PROGRESS_BAR)
       #define PROGRESS_BAR_BAR_TIME 2000  // (ms) Amount of time to show the bar
       #define PROGRESS_BAR_MSG_TIME 3000  // (ms) Amount of time to show the status message
-      #define PROGRESS_MSG_EXPIRE      0  // (ms) Amount of time to retain the status message (0=forever)
+      #define PROGRESS_MSG_EXPIRE   0     // (ms) Amount of time to retain the status message (0=forever)
       //#define PROGRESS_MSG_ONCE         // Show the message for MSG_TIME then clear it
       //#define LCD_PROGRESS_BAR_TEST     // Add a menu item to test the progress bar
     #endif
@@ -1535,7 +1594,7 @@
 
   #define SD_PROCEDURE_DEPTH 1              // Increase if you need more nested M32 calls
 
-  #define SD_FINISHED_STEPPERRELEASE true   // Disable steppers when SD Print is finished
+  #define SD_FINISHED_STEPPERRELEASE false  //TG 12/30/2020 Disable steppers when SD Print is finished
   #define SD_FINISHED_RELEASECOMMAND "M84"  // Use "M84XYE" to keep Z enabled so your bed stays in place
 
   // Reverse SD sort to show "more recent" files first, according to the card's FAT.
@@ -1648,9 +1707,17 @@
     //#define SD_ABORT_ON_ENDSTOP_HIT_GCODE "G28XY" // G-code to run on endstop hit (e.g., "G28XY" or "G27")
   #endif
 
-  //#define SD_REPRINT_LAST_SELECTED_FILE // On print completion open the LCD Menu and select the same file
+  /**
+   * This option makes it easier to print the same SD Card file again.
+   * On print completion the LCD Menu will open with the file selected.
+   * You can just click to start the print, or navigate elsewhere.
+   */
+  //#define SD_REPRINT_LAST_SELECTED_FILE
 
-  //#define AUTO_REPORT_SD_STATUS         // Auto-report media status with 'M27 S<seconds>'
+  /**
+   * Auto-report SdCard status with M27 S<seconds>
+   */
+  #define AUTO_REPORT_SD_STATUS	//TG 1/9/2020 enabled for TFT35
 
   /**
    * Support for USB thumb drives using an Arduino USB Host Shield or
@@ -1735,7 +1802,7 @@
    *
    * :[ 'LCD', 'ONBOARD', 'CUSTOM_CABLE' ]
    */
-  //#define SDCARD_CONNECTION LCD
+  #define SDCARD_CONNECTION LCD //TG 12/30/2020
 
   // Enable if SD detect is rendered useless (e.g., by using an SD extender)
   //#define NO_SD_DETECT
@@ -1830,7 +1897,7 @@
   #define STATUS_HOTEND_ANIM          // Use a second bitmap to indicate hotend heating
   #define STATUS_BED_ANIM             // Use a second bitmap to indicate bed heating
   #define STATUS_CHAMBER_ANIM         // Use a second bitmap to indicate chamber heating
-  //#define STATUS_CUTTER_ANIM        // Use a second bitmap to indicate spindle / laser active
+  #define STATUS_CUTTER_ANIM        //TG 4/30/21 enabled Use a second bitmap to indicate spindle / laser active
   //#define STATUS_COOLER_ANIM        // Use a second bitmap to indicate laser cooling
   //#define STATUS_FLOWMETER_ANIM     // Use multiple bitmaps to indicate coolant flow
   //#define STATUS_ALT_BED_BITMAP     // Use the alternative bed bitmap
@@ -1848,14 +1915,21 @@
 #endif // HAS_MARLINUI_U8GLIB
 
 #if HAS_MARLINUI_U8GLIB || IS_DWIN_MARLINUI
-  #define MENU_HOLLOW_FRAME           // Enable to save many cycles by drawing a hollow frame on Menu Screens
-  //#define OVERLAY_GFX_REVERSE       // Swap the CW/CCW indicators in the graphics overlay
+  // Show SD percentage next to the progress bar
+  //#define SHOW_SD_PERCENT
+
+  // Enable to save many cycles by drawing a hollow frame on Menu Screens
+  #define MENU_HOLLOW_FRAME
+
+  // Swap the CW/CCW indicators in the graphics overlay
+  //#define OVERLAY_GFX_REVERSE
 #endif
 
 //
 // Additional options for DGUS / DWIN displays
 //
 #if HAS_DGUS_LCD
+  #define LCD_SERIAL_PORT 3
   #define LCD_BAUDRATE 115200
 
   #define DGUS_RX_BUFFER_SIZE 128
@@ -2058,11 +2132,11 @@
  *
  * Warning: Does not respect endstops!
  */
-//#define BABYSTEPPING
+#define BABYSTEPPING  //TG 5/5/2021
 #if ENABLED(BABYSTEPPING)
   //#define INTEGRATED_BABYSTEPPING         // EXPERIMENTAL integration of babystepping into the Stepper ISR
   //#define BABYSTEP_WITHOUT_HOMING
-  //#define BABYSTEP_ALWAYS_AVAILABLE       // Allow babystepping at all times (not just during movement).
+  #define BABYSTEP_ALWAYS_AVAILABLE         //TG 5/5/21 Allow babystepping at all times (not just during movement).
   //#define BABYSTEP_XY                     // Also enable X/Y Babystepping. Not supported on DELTA!
   #define BABYSTEP_INVERT_Z false           // Change if Z babysteps should go the other way
   //#define BABYSTEP_MILLIMETER_UNITS       // Specify BABYSTEP_MULTIPLICATOR_(XY|Z) in mm instead of micro-steps
@@ -2079,9 +2153,9 @@
     #endif
   #endif
 
-  //#define BABYSTEP_DISPLAY_TOTAL          // Display total babysteps since last G28
+  #define BABYSTEP_DISPLAY_TOTAL            //TG 5/5/21 Display total babysteps since last G28
 
-  //#define BABYSTEP_ZPROBE_OFFSET          // Combine M851 Z and Babystepping
+  //#define BABYSTEP_ZPROBE_OFFSET          // Combine M851 Z and Babystepping (a probe must be defined!)
   #if ENABLED(BABYSTEP_ZPROBE_OFFSET)
     //#define BABYSTEP_HOTEND_Z_OFFSET      // For multiple hotends, babystep relative Z offsets
     //#define BABYSTEP_ZPROBE_GFX_OVERLAY   // Enable graphical overlay on Z-offset editor
@@ -2105,7 +2179,7 @@
  *
  * See https://marlinfw.org/docs/features/lin_advance.html for full instructions.
  */
-//#define LIN_ADVANCE
+//#define LIN_ADVANCE	//TG 12/30/2020
 #if ENABLED(LIN_ADVANCE)
   #if ENABLED(DISTINCT_E_FACTORS)
     #define ADVANCE_K { 0.22 }    // (mm) Compression length per 1mm/s extruder speed, per extruder
@@ -2267,7 +2341,7 @@
 
     // Height above Z=0.0 to raise the nozzle. Lowering this can help the probe to heat faster.
     // Note: The Z=0.0 offset is determined by the probe Z offset (e.g., as set with M851 Z).
-    #define PTC_PROBE_HEATING_OFFSET 0.5
+    //#define PTC_PROBE_HEATING_OFFSET 0.5
   #endif
 #endif // PTC_PROBE || PTC_BED || PTC_HOTEND
 
@@ -2281,7 +2355,7 @@
 //
 // G2/G3 Arc Support
 //
-#define ARC_SUPPORT                   // Requires ~3226 bytes
+#define ARC_SUPPORT                 //TG 12/30/2020 Disable this feature to save ~3226 bytes
 #if ENABLED(ARC_SUPPORT)
   #define MIN_ARC_SEGMENT_MM      0.1 // (mm) Minimum length of each arc segment
   #define MAX_ARC_SEGMENT_MM      1.0 // (mm) Maximum length of each arc segment
@@ -2316,7 +2390,7 @@
  * and optionally G38.4 and G38.5 (probe away from target).
  * Set MULTIPLE_PROBING for G38 to probe more than once.
  */
-//#define G38_PROBE_TARGET
+#define G38_PROBE_TARGET          //TG 9/30/2022 - enabled for MPCNC using Probe Z to Max (up)
 #if ENABLED(G38_PROBE_TARGET)
   //#define G38_PROBE_AWAY        // Include G38.4 and G38.5 to probe away from target
   #define G38_MINIMUM_MOVE 0.0275 // (mm) Minimum distance that will produce a move.
@@ -2440,7 +2514,7 @@
  * Currently handles M108, M112, M410, M876
  * NOTE: Not yet implemented for all platforms.
  */
-//#define EMERGENCY_PARSER
+#define EMERGENCY_PARSER  //TG 12/30/2020 required for TFT35
 
 /**
  * Realtime Reporting (requires EMERGENCY_PARSER)
@@ -2476,8 +2550,7 @@
 #define SERIAL_OVERRUN_PROTECTION
 
 // For serial echo, the number of digits after the decimal point
-//#define SERIAL_FLOAT_PRECISION 4
-
+#define SERIAL_FLOAT_PRECISION 4  //TG 12/30/2020 required for TFT35
 /**
  * Set the number of proportional font spaces required to fill up a typical character space.
  * This can help to better align the output of commands like `G29 O` Mesh Output.
@@ -2676,7 +2749,7 @@
   //#define PARK_HEAD_ON_PAUSE                    // Park the nozzle during pause and filament change.
   //#define HOME_BEFORE_FILAMENT_CHANGE           // If needed, home before parking for filament change
 
-  //#define FILAMENT_LOAD_UNLOAD_GCODES           // Add M701/M702 Load/Unload G-codes, plus Load/Unload in the LCD Prepare menu.
+  #define FILAMENT_LOAD_UNLOAD_GCODES             //TG 1/9/2020 enabled for TFT35  Add M701/M702 Load/Unload G-codes, plus Load/Unload in the LCD Prepare menu.
   //#define FILAMENT_UNLOAD_ALL_EXTRUDERS         // Allow M702 to unload all extruders above a minimum target temp (as set by M302)
 #endif
 
@@ -3193,7 +3266,7 @@
    * Beta feature!
    * Create a 50/50 square wave step pulse optimal for stepper drivers.
    */
-  //#define SQUARE_WAVE_STEPPING
+  #define SQUARE_WAVE_STEPPING	//TG 12/30/2020
 
   /**
    * Enable M122 debugging command for TMC stepper drivers.
@@ -3254,7 +3327,20 @@
 
 //#define EXPERIMENTAL_I2CBUS
 #if ENABLED(EXPERIMENTAL_I2CBUS)
-  #define I2C_SLAVE_ADDRESS  0  // Set a value from 8 to 127 to act as a slave
+  #define I2C_SLAVE_ADDRESS  0x7F  // Set a value from 8 to 127 to act as a slave
+#endif
+
+
+
+// @section i2cbus
+// **********************************************************************************************************
+//TG 5/14/22 - I2C support for communicating between CNC control board (AVR128DB28) and Marlin (LPC1769).
+//             Currently only Slave mode is supported, Master can be added in the future if needed.
+// **********************************************************************************************************
+#ifdef TG_I2C_SUPPORT
+  #define USEDI2CDEV_M -1           // choose a Master I2C peripheral from 0 to 2 (-1 is not used)
+  #define USEDI2CDEV_S 1            // choose a Slave I2C peripheral from 0 to 2 (-1 is not used)
+  #define I2C_SLAVE_ADDRESS  0x7F   // Set a value from 8 to 127 to act as a slave
 #endif
 
 // @section photo
@@ -3302,8 +3388,8 @@
 
 // @section cnc
 
-/**
- * Spindle & Laser control
+/**********************************************************************************************************
+ * Spindle & Laser    //TG 12/16/22 modified for many options
  *
  * Add the M3, M4, and M5 commands to turn the spindle/laser on and off, and
  * to set spindle speed, spindle direction, and laser power.
@@ -3317,18 +3403,18 @@
  *
  * See https://marlinfw.org/docs/configuration/2.0.9/laser_spindle.html for more config details.
  */
-//#define SPINDLE_FEATURE
+//-------------  Select either Spindle or Laser here  ----------------------------------------------------------------------
+#define SPINDLE_FEATURE                        //TG 1/17/20 enabled to test CNC
 //#define LASER_FEATURE
 #if EITHER(SPINDLE_FEATURE, LASER_FEATURE)
-  #define SPINDLE_LASER_ACTIVE_STATE    LOW    // Set to "HIGH" if SPINDLE_LASER_ENA_PIN is active HIGH
-
-  #define SPINDLE_LASER_USE_PWM                // Enable if your controller supports setting the speed/power
+  #define SPINDLE_LASER_ACTIVE_STATE    HIGH   // Set to "HIGH" if SPINDLE_LASER_ENA_PIN is active HIGH
+  
+  //-----  Enable if your controller supports setting the speed/power via PWM signal supplied from Marlin  -----------------
+  #define SPINDLE_LASER_USE_PWM                 
   #if ENABLED(SPINDLE_LASER_USE_PWM)
     #define SPINDLE_LASER_PWM_INVERT    false  // Set to "true" if the speed/power goes up when you want it to go slower
-    #define SPINDLE_LASER_FREQUENCY     2500   // (Hz) Spindle/laser frequency (only on supported HALs: AVR, ESP32, and LPC)
-                                               // ESP32: If SPINDLE_LASER_PWM_PIN is onboard then <=78125Hz. For I2S expander
-                                               //  the frequency determines the PWM resolution. 2500Hz = 0-100, 977Hz = 0-255, ...
-                                               //  (250000 / SPINDLE_LASER_FREQUENCY) = max value.
+    #define SPINDLE_LASER_FREQUENCY     1000   // (Hz) Spindle/laser frequency (only on supported HALs: AVR and LPC)
+    #define SPINDLE_LASER_PWM_RES       1023   // resolution of hardware PWM for spindle255, 511, 1023, 2047 ........
   #endif
 
   //#define AIR_EVACUATION                     // Cutter Vacuum / Laser Blower motor control with G-codes M10-M11
@@ -3356,7 +3442,11 @@
    *  - RPM     (S0 - S50000)  Best for use with a spindle
    *  - SERVO   (S0 - S180)
    */
-  #define CUTTER_POWER_UNIT PWM255
+  //#define PWM255  0
+  //#define PERCENT 1
+  //#define RPM     2
+  //#define SERVO   3
+  #define CUTTER_POWER_UNIT RPM               //TG 1/17/20 set RPM to test CNC
 
   /**
    * Relative Cutter Power
@@ -3369,12 +3459,66 @@
   //#define CUTTER_POWER_RELATIVE              // Set speed proportional to [SPEED_POWER_MIN...SPEED_POWER_MAX]
 
   #if ENABLED(SPINDLE_FEATURE)
-    //#define SPINDLE_CHANGE_DIR               // Enable if your spindle controller can change spindle direction
+    #define SPINDLE_CHANGE_DIR                 // Enable if your spindle controller can change spindle direction  //TG 1/17/20 enabled
     #define SPINDLE_CHANGE_DIR_STOP            // Enable if the spindle should stop before changing spin direction
     #define SPINDLE_INVERT_DIR          false  // Set to "true" if the spin direction is reversed
 
     #define SPINDLE_LASER_POWERUP_DELAY   5000 // (ms) Delay to allow the spindle/laser to come up to speed/power
     #define SPINDLE_LASER_POWERDOWN_DELAY 5000 // (ms) Delay to allow the spindle to stop
+    
+    //TG 9/27/21 to set whether spindle speed will use Marlin - PID control, requires USE_RPM_SENSOR enabled
+    #define SPINDLE_USE_PID  false             
+   
+    //--------------------------------------------------------------------------------------------------------------------------
+    // following are options for spindle control and RPM sensing of spindle rotation which could be
+    // used instead of the default Marlin spindle ON/OFF control or SPINDLE_LASER_USE_PWM method up above.
+    //--------------------------------------------------------------------------------------------------------------------------
+    
+    //-------------   Enable if spindle is controlled by AVR Triac board //TG 12/16/22  ----------------------------------------
+    //#define AVR_TRIAC_CONTROLLER                
+    // Marlin sends TARGET_RPM to controller, controller measures RPM sensor and returns ACTUAL_RPM to Marlin
+    // Many other features such as an extra LCD display, PID control, etc. all done via I2C from controller to Marlin.
+    // No PWM is required in Marlin. PID control handled by Triac Controller.
+    #if ENABLED(AVR_TRIAC_CONTROLLER) 
+      #define TG_I2C_SUPPORT                    // brings in TG_I2CSlave.cpp,h, calls I2C.begin, set master/slave operation, etc.
+    #endif
+
+    //-------------   Enable if spindle is controlled by VFD //TG 12/16/22  ----------------------------------------------------
+    #define VFD_CONTROLLER
+    // Marlin sends TARGET_RPM to VFD and Marlin measures RPM sensor(optional). All parameters are exchanged via
+    // Serial Comm (UART) pins P0.0(TX3)/P0.1(RX3) of UART3 connected to an RS485 converter to/from the VFD.
+    // No PWM is required in Marlin. No PID is used with VFD either. Requires USE_RPM_SENSOR to measure actual RPM.
+    #if ENABLED(VFD_CONTROLLER)       // brings in serial comm for USART3 in LPC1769 using LCD_SERIAL object            
+      #define LCD_SERIAL_PORT 3       // use LPC1769 UART #3 as it is the only available option, we access it through LCD_SERIAL
+      #define LCD_BAUDRATE 9600       // object (not SERIAL_3 because it's a Multi-Serial with 1 and 2).
+    #endif 
+    
+    //-------------  Enable reading an attached RPM sensor  //TG 12/16/22  ------------------------------------------------------
+    #define USE_RPM_SENSOR                     
+    #if ENABLED(USE_RPM_SENSOR)       // brings in rpmTimer.cpp,h for Timer3 to count pulses at CAP3.0 (P0_23)             
+    /* 
+    force RPM to be updated on display as fast as possible(once per RPM Sample Time), this may cause other functions to be delayed,
+    if any strange motion errors or lockups occur comment this out! Turning this on does not improve the RPM sampling and PID control
+    response rate, only how fast the TFT is updated. NOTE: These following two flags are checked in Conditionals_post.h so 
+    TEMP_TIMER_FREQUENCY can be redefined early on allowing code dependent on TEMP_TIMER_FREQUENCY to get the updated value!
+    */
+    //#define FAST_RPM_REPORTING                //TG 5/25/21 Added this option       
+    //#define PID_WAVEFORM_LOGGING              // uncomment if you want to log PID info to terminal for graphing
+    #endif
+
+	/** //TG 2/18/21 added
+	 * Vacuum Dust Collection Control
+	 *
+	 * Note: VACCUM_ENABLE_PIN must be defined
+	 */
+	#define VACUUM_CONTROL
+	#if ENABLED(VACUUM_CONTROL)
+	 #ifndef VACUUM_ENA_PIN
+	   #define VACUUM_ENA_PIN  P1_22
+	 #endif
+	 #define VACUUM_INVERT_DIR  false          // Set to "true" if active low required
+	#endif
+
 
     /**
      * M3/M4 Power Equation
@@ -3387,12 +3531,12 @@
      */
     #if ENABLED(SPINDLE_LASER_USE_PWM)
       #define SPEED_POWER_INTERCEPT       0    // (%) 0-100 i.e., Minimum power percentage
-      #define SPEED_POWER_MIN          5000    // (RPM)
-      #define SPEED_POWER_MAX         30000    // (RPM) SuperPID router controller 0 - 30,000 RPM
-      #define SPEED_POWER_STARTUP     25000    // (RPM) M3/M4 speed/power default (with no arguments)
+      #define SPEED_POWER_MIN             0    // (RPM)
+      #define SPEED_POWER_MAX         24000    // (RPM) SuperPID router controller 0 - 30,000 RPM
+      #define SPEED_POWER_STARTUP     20000    // (RPM) M3/M4 speed/power default (with no arguments)
     #endif
 
-  #else
+  #else   // this is for LASER
 
     #if ENABLED(SPINDLE_LASER_USE_PWM)
       #define SPEED_POWER_INTERCEPT       0    // (%) 0-100 i.e., Minimum power percentage
@@ -3475,8 +3619,9 @@
       #endif
     #endif
 
-  #endif
-#endif // SPINDLE_FEATURE || LASER_FEATURE
+  #endif //if ENABLED(SPINDLE_FEATURE) else this is for LASER
+#endif // if EITHER(SPINDLE_FEATURE, LASER_FEATURE)
+
 
 /**
  * Synchronous Laser Control with M106/M107
@@ -3584,8 +3729,7 @@
  * Enables G53 and G54-G59.3 commands to select coordinate systems
  * and G92.1 to reset the workspace to native machine space.
  */
-//#define CNC_COORDINATE_SYSTEMS
-
+#define CNC_COORDINATE_SYSTEMS	//TG 12/30/2020
 // @section reporting
 
 /**
@@ -3597,7 +3741,7 @@
 /**
  * Auto-report temperatures with M155 S<seconds>
  */
-#define AUTO_REPORT_TEMPERATURES
+#define AUTO_REPORT_TEMPERATURES	//TG 1/9/2020 enabled for TFT35
 #if ENABLED(AUTO_REPORT_TEMPERATURES) && TEMP_SENSOR_REDUNDANT
   //#define AUTO_REPORT_REDUNDANT // Include the "R" sensor in the auto-report
 #endif
@@ -3612,7 +3756,7 @@
  */
 #define EXTENDED_CAPABILITIES_REPORT
 #if ENABLED(EXTENDED_CAPABILITIES_REPORT)
-  //#define M115_GEOMETRY_REPORT
+  #define M115_GEOMETRY_REPORT  //TG 12/30/2020  required for TFT35
 #endif
 
 // @section security
@@ -3657,11 +3801,12 @@
 // @section reporting
 
 // Extra options for the M114 "Current Position" report
-//#define M114_DETAIL         // Use 'M114` for details to check planner calculations
-//#define M114_REALTIME       // Real current position based on forward kinematics
+#define M114_DETAIL         // Use 'M114` for details to check planner calculations  //TG 1/9/2020 enabled for TFT35//
+#define M114_REALTIME       // Real current position based on forward kinematics
 //#define M114_LEGACY         // M114 used to synchronize on every call. Enable if needed.
+#define REPORT_FAN_CHANGE     //TG 12/30/2020 Report the new fan speed when changed by M106 (and others)
 
-//#define REPORT_FAN_CHANGE   // Report the new fan speed when changed by M106 (and others)
+#define REPORT_SPINDLE_CHANGE     //TG 1/17/2020 Report the new spindle speed when changed by M3,4
 
 // @section gcode
 
@@ -3698,7 +3843,7 @@
  * High feedrates may cause ringing and harm print quality.
  */
 //#define PAREN_COMMENTS      // Support for parentheses-delimited comments
-//#define GCODE_MOTION_MODES  // Remember the motion mode (G0 G1 G2 G3 G5 G38.X) and apply for X Y Z E F, etc.
+#define GCODE_MOTION_MODES    //TG 12/30/2020 Remember the motion mode (G0 G1 G2 G3 G5 G38.X) and apply for X Y Z E F, etc.
 
 // Enable and set a (default) feedrate for all G0 moves
 //#define G0_FEEDRATE 3000 // (mm/min)
@@ -3735,24 +3880,24 @@
 // @section custom main menu
 
 // Custom Menu: Main Menu
-//#define CUSTOM_MENU_MAIN
+//#define CUSTOM_MENU_MAIN  //TG 12/30/2020
 #if ENABLED(CUSTOM_MENU_MAIN)
-  //#define CUSTOM_MENU_MAIN_TITLE "Custom Commands"
+  //#define CUSTOM_MENU_MAIN_TITLE "V1 Custom Menu"	//TG 12/30/2020
   #define CUSTOM_MENU_MAIN_SCRIPT_DONE "M117 User Script Done"
   #define CUSTOM_MENU_MAIN_SCRIPT_AUDIBLE_FEEDBACK
   //#define CUSTOM_MENU_MAIN_SCRIPT_RETURN   // Return to status screen after a script
   #define CUSTOM_MENU_MAIN_ONLY_IDLE         // Only show custom menu when the machine is idle
 
-  #define MAIN_MENU_ITEM_1_DESC "Home & UBL Info"
-  #define MAIN_MENU_ITEM_1_GCODE "G28\nG29 W"
+  #define MAIN_MENU_ITEM_1_DESC "Reset XYZ Coords (no motion)"	//TG 12/30/2020
+  #define MAIN_MENU_ITEM_1_GCODE "G92 X0 Y0 Z0"	//TG 12/30/2020
   //#define MAIN_MENU_ITEM_1_CONFIRM          // Show a confirmation dialog before this action
 
-  #define MAIN_MENU_ITEM_2_DESC "Preheat for " PREHEAT_1_LABEL
-  #define MAIN_MENU_ITEM_2_GCODE "M140 S" STRINGIFY(PREHEAT_1_TEMP_BED) "\nM104 S" STRINGIFY(PREHEAT_1_TEMP_HOTEND)
+  #define MAIN_MENU_ITEM_2_DESC "Home X&Y"	//TG 12/30/2020
+  #define MAIN_MENU_ITEM_2_GCODE "G28 X Y"	//TG 12/30/2020
   //#define MAIN_MENU_ITEM_2_CONFIRM
 
-  //#define MAIN_MENU_ITEM_3_DESC "Preheat for " PREHEAT_2_LABEL
-  //#define MAIN_MENU_ITEM_3_GCODE "M140 S" STRINGIFY(PREHEAT_2_TEMP_BED) "\nM104 S" STRINGIFY(PREHEAT_2_TEMP_HOTEND)
+  //#define MAIN_MENU_ITEM_3_DESC "Home Z Axis"	//TG 12/30/2020
+  //#define MAIN_MENU_ITEM_3_GCODE "G28 Z"	//TG 12/30/2020
   //#define MAIN_MENU_ITEM_3_CONFIRM
 
   //#define MAIN_MENU_ITEM_4_DESC "Heat Bed/Home/Level"
@@ -3845,15 +3990,15 @@
  * Host Prompt Support enables Marlin to use the host for user prompts so
  * filament runout and other processes can be managed from the host side.
  */
-//#define HOST_ACTION_COMMANDS
-#if ENABLED(HOST_ACTION_COMMANDS)
-  //#define HOST_PAUSE_M76                // Tell the host to pause in response to M76
-  //#define HOST_PROMPT_SUPPORT           // Initiate host prompts to get user feedback
+#define HOST_ACTION_COMMANDS  		//TG 1/9/2020 enabled for TFT35
+#if ENABLED(HOST_ACTION_COMMANDS)	//TG 1/9/2020 enabled for TFT35
+  #define HOST_PAUSE_M76			Tell the host to pause in response to M76
+  #define HOST_PROMPT_SUPPORT		//TG 1/9/2020 enabled for TFT35 Initiate host prompts to get user feedback
   #if ENABLED(HOST_PROMPT_SUPPORT)
     //#define HOST_STATUS_NOTIFICATIONS   // Send some status messages to the host as notifications
   #endif
-  //#define HOST_START_MENU_ITEM          // Add a menu item that tells the host to start
-  //#define HOST_SHUTDOWN_MENU_ITEM       // Add a menu item that tells the host to shut down
+  #define HOST_START_MENU_ITEM      // Add a menu item that tells the host to start
+  #define HOST_SHUTDOWN_MENU_ITEM   // Add a menu item that tells the host to shut down
 #endif
 
 // @section extras
@@ -3993,6 +4138,7 @@
 
 /**
  * Instant freeze / unfreeze functionality
+ * Specified pin has pullup and connecting to ground will instantly pause motion.
  * Potentially useful for emergency stop that allows being resumed.
  * @section interface
  */
@@ -4213,12 +4359,12 @@
 //
 // M42 - Set pin states
 //
-//#define DIRECT_PIN_CONTROL
+#define DIRECT_PIN_CONTROL  //TG 1/12/20 enabled needed to control some CNC devices (like Vacuum)
 
 //
 // M43 - display pin status, toggle pins, watch pins, watch endstops & toggle LED, test servo probe
 //
-//#define PINS_DEBUGGING
+#define PINS_DEBUGGING      //TG 1/12/20 enabled
 
 // Enable Tests that will run at startup and produce a report
 //#define MARLIN_TEST_BUILD

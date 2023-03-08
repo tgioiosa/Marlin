@@ -1,0 +1,18 @@
+Notes:
+
+remaining items to analyze for diff's are:
+
+src>
+feature
+gcode
+HAL
+inc
+lcd
+libs
+module
+pins
+sd
+MarlinCore cpp/h
+
+
+everything else has been compared and adjusted

@@ -1,0 +1,176 @@
+Understanding Marlin Serial Com
+
+Marlin\src\HAL\LPC1768\MarlinSerial.cpp - has definitions for _MSerial0 - _MSerial3 which
+	points to LPCUART0-LPCUART3 and assigns the interrupt handlers.
+
+Marlin\src\HAL\NATIVE_SIM\HAL.h - checks the macros SERIAL_PORT, SERIAL_PORT1, MMU2_SERIAL_PORT,
+	and LCD_SERIAL_PORT to be within 0 to 3, and calls MSERIAL(0-3) to set LPC1769 UARTs and
+	interrupt handlers. If these are defined, then the following are defined:
+		#if WITHIN(SERIAL_PORT, -1, 3)		#define USBSerial or MSerial(0,1,2,3)
+		#if WITHIN(SERIAL_PORT_2, -1, 3)	#define USBSerial or MSerial(0,1,2,3)
+		#if WITHIN(SERIAL_PORT_3, -1, 3)	#define USBSerial or MSerial(0,1,2,3)
+		#if WITHIN(MMU2_SERIAL_PORT, -1, 3) 	#define USBSerial or MSerial(0,1,2,3)
+		#if WITHIN(LCD_SERIAL_PORT, -1, 3) 	#define USBSerial or MSerial(0,1,2,3)
+
+For all the above #defines that set to MSerial(0-3), MSerial(0-3) is an MSerialT type which is defined as a ForwardSerial1Class<MarlinSerial> in MarlinSerial.h.
+The MarlinSerial class references class HardwareSerial in HardwareSerial.h to setup the correct UART pins and registers, enables the interrupts, and defines the
+actual read, write, begin, etc code and all the other details needed to handle a specific UART port instance.
+
+
+NOTES:	SERIAL_PORT (logical first serial port) represents the primary HOST<>MARLIN communication port
+	SERIAL_PORT = 0 assigns it to LPC1769 UART0(P0.2/P0.3) which connect to AUX-1 on the SGEN board.
+	AUX-1 signals are RX0/TX0/RTS/CTS (RTS/CTS are just buffered versions of RX/TX).
+	AUX-1 is connected to the TFT35 LCD serial connection.
+
+	SERIAL_PORT_2 (logical second serial port)
+	SERIAL_PORT_2 = -1 assigns it to the USB port (P0_29/P0_30) 
+
+	SERIAL_PORT_3 (logical third serial port)
+	SERIAL_PORT_3 = currently not assigned
+
+	LCD_SERIAL_PORT (logical serial port)
+ 	LCD_SERIAL_PORT = currently not assigned
+
+	MMU2_SERIAL_PORT = (logical serial port)
+	MMU2_SERIAL_PORT = currently not assigned
+
+
+
+
+
+
+Josey76
+How to setup second independant serial port on Marlin 2.0.9
+October 05, 2021 12:22AM
+
+Hi, I'm new to the Reprap forums. A bit of history about me, I'm an electronics tech at work and I've been exploring 3D printing as a hobby for about 2.5 years. I've built my own core XY printer and I've been using Marlin on it and it works great.
+
+So when a project came up at work needing 5 axis stepper control, Marlin was the first thing I looked into. To my surprise 6 axis support has recently been added. We setup an Adafruit Grand Central and a RAMPS 1.4 board and so far Marlin 2.0.9 has been working great on this setup. I've added some simple position error correction using rotary quadrature encoders and some M codes for controlling solenoids and such and all that is working great.
+
+So my next big hurdle is connecting another device to Marlin over RS485. Here is where I've hit a block. If I enable another serial port in Configuration.h:
+#define SERIAL_PORT_2 1
+#define BAUDRATE_2 9600 // Enable to override BAUDRATE
+I get another serial port that translates fine over a MAX3485. I'm using a USB to RS485 adapter to read the signal back into my laptop for testing. I can transmit data from Marlin over RS485 to the external device, but I can't receive anything back. I can confirm that Marlin is reading the serial port correctly (via the MAX3485) because I can send G code and M code through this port and get responses.
+
+If my understanding is correct, this serial port is part of a "multiserial" object that combines several serial ports into one. This allows gcode to be sent over either the USB (my default connection), or the second serial port (RS485 in my case). This also means that data coming into this port is forwarded to the gcode parser so I can't read it for my purposes using Serial.read() etc... I think I also read somewhere that the entire serial port structure was revamped to this new style very recently (2.0.8 maybe?)
+
+So my question is how do I create the second serial port, but have it be independant so that I can send data to my device and receive it's response? I've read through the "docs/Serial.md" file which has helped me understand more, but I'm not the best at C++ and the code is a bit hard for me to follow. Does anyone have some instructions or some example code on how to do what I'm looking for? Or some helpful tips or explanations that might point me in the right direction to figure it out?
+
+Thanks in advance for any help.
+
+
+Dust
+Re: How to setup second independant serial port on Marlin 2.0.9
+October 05, 2021 12:25AM
+Marlin SERIAL_PORT, SERIAL_PORT_2 and SERIAL_PORT_3 all expect standard gcode
+
+If your wanting some other protocol you dont use these
+For other serial devices have a look at code using LCD_SERIAL_PORT or MMU2_SERIAL_PORT
+
+
+Josey76
+Re: How to setup second independant serial port on Marlin 2.0.9
+October 05, 2021 12:44PM
+Hi Dust,
+
+Thanks so much for that clue! That was exactly what I was looking for. Now I can read and write to the serial port as I wish.
+
+For anybody else who wants to do the same thing, here is how I got it working. If there is a cleaner way please let me know.
+
+In Configuration.h I added:
+
+#define LCD_SERIAL_PORT 1  // rs485 port
+#define LCD_BAUDRATE 9600
+
+
+
+I wanted to use the I2C pins on the RAMPs board (D20 and D21) so serial 2 is configured in MarlinSerial_AGCM4.cpp (for the Adafruit Grand Central):
+
+#if USING_HW_SERIAL1
+  UartT Serial2(false, &sercom3, PIN_SERIAL2_RX, PIN_SERIAL2_TX, PAD_SERIAL2_RX, PAD_SERIAL2_TX);
+  void SERCOM3_0_Handler() { Serial2.IrqHandler(); }
+  void SERCOM3_1_Handler() { Serial2.IrqHandler(); }
+  void SERCOM3_2_Handler() { Serial2.IrqHandler(); }
+  void SERCOM3_3_Handler() { Serial2.IrqHandler(); }
+#endif
+
+and in variant.h:
+
+// Serial2
+#define PIN_SERIAL2_RX      (21)
+#define PIN_SERIAL2_TX      (20)
+#define PAD_SERIAL2_TX      (UART_TX_PAD_0)
+#define PAD_SERIAL2_RX      (SERCOM_RX_PAD_1)
+#define SERCOM_SERIAL2		  sercom3
+
+In my .cpp file as part of an M code to initialize the device (copied from dwin_lcd.cpp):
+
+LCD_SERIAL.begin(LCD_BAUDRATE);
+
+const millis_t serial_connect_timeout = millis() + 1000UL;
+while (!LCD_SERIAL.connected() && PENDING(millis(), serial_connect_timeout)) { /*nada*/ }
+SERIAL_ECHOLN("serial ready");
+
+And if anyone wants to use a MAX3485 transciever this seems to work well. Pin A4 (also pin D71) is the transmit enable:
+"
+void writeRS485(char* msg485) {
+  WRITE(71, HIGH);
+
+  strcat(msg485, "\r\n");
+  SERIAL_ECHOLN("WRITING 485");
+  LCD_SERIAL.print(msg485);
+  // Serial2.print(msg485);
+
+  while (Serial2.availableForWrite() < SERIAL_BUFFER_SIZE - 1) {
+    gcode.dwell(1);
+  }
+  gcode.dwell(2);
+  WRITE(71, LOW);
+  gcode.dwell(50);
+  SERIAL_ECHOLN("reading");
+  while (LCD_SERIAL.available()) {
+    char in485 = LCD_SERIAL.read();
+    if (in485 != '\r')
+      SERIAL_CHAR(in485);
+  }
+}
+
+
+Hopefully this helps someone.
+
+Thanks again for the help.
+
+
+
+
+16.3 The Curiously Recurring Template Pattern (CRTP)
+This oddly named pattern refers to a general class of techniques that consists of passing a derived class as a
+template argument to one of its own base classes. In its simplest form, C++ code for such a pattern looks as follows:
+template <typename Derived>
+class CuriousBase {
+ …
+};
+class Curious : public CuriousBase<Curious> {
+ …
+};
+Our first outline of CRTP shows a nondependent base class: The class Curious is not a template and is therefore
+immune to some of the name visibility issues of dependent base classes. However, this is not an intrinsic
+characteristic of CRTP. Indeed, we could just as well have used the following alternative outline:
+template <typename Derived>
+class CuriousBase {
+ …
+};
+template <typename T>
+class CuriousTemplate : public CuriousBase<CuriousTemplate<T> > {
+ …
+};
+From this outline, however, it is not a far stretch to propose yet another alternative formulation, this time involving a
+template template parameter:
+template <template<typename> class Derived>
+class MoreCuriousBase {
+ …
+};
+template <typename T>
+class MoreCurious : public MoreCuriousBase<MoreCurious> {
+ …
+}; 
