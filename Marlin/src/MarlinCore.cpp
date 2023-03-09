@@ -154,7 +154,7 @@
 #endif
 
 #if HAS_CUTTER
-  #include "feature/spindle_laser.h"
+  #include "../Marlin/src/feature/spindle_laser.h"
 #endif
 
 #if ENABLED(TG_I2C_SUPPORT) || ENABLED(EXPERIMENTAL_I2CBUS)
@@ -162,7 +162,7 @@
 #endif
 
 #if ENABLED(USE_RPM_SENSOR)
-  #include "module/rpmSensor/rpmTimer.h"        //TG 12/20/22 was under "#if HAS_CUTTER"  TG 8/30/22 removed, not used for AVRTriac system
+  #include <src/module/rpmSensor/rpmTimer.h>        //TG 12/20/22 was under "#if HAS_CUTTER"  TG 8/30/22 removed, not used for AVRTriac system
 #endif
 
 #if ENABLED(VFD_CONTROLLER)                     // TG 12/15/22 added this new to use LCD_SERIAL_PORT as UART3 for RS485
@@ -184,6 +184,8 @@
   #include "module/polargraph.h"
 #elif IS_SCARA
   #include "module/scara.h"
+#elif ENABLED(POLAR)
+  #include "module/polar.h"
 #endif
 
 #if HAS_LEVELING
@@ -248,7 +250,7 @@
   #include "feature/password/password.h"
 #endif
 
-#if ENABLED(DGUS_LCD_UI_MKS)
+#if DGUS_LCD_UI_MKS
   #include "lcd/extui/dgus/DGUSScreenHandler.h"
 #endif
 
@@ -465,7 +467,7 @@ inline void manage_inactivity(const bool no_stepper_sleep=false) {
           TERN_(DISABLE_INACTIVE_U, stepper.disable_axis(U_AXIS));
           TERN_(DISABLE_INACTIVE_V, stepper.disable_axis(V_AXIS));
           TERN_(DISABLE_INACTIVE_W, stepper.disable_axis(W_AXIS));
-          TERN_(DISABLE_INACTIVE_E, stepper.disable_e_steppers());
+          TERN_(DISABLE_INACTIVE_EXTRUDER, stepper.disable_e_steppers());
 
           TERN_(AUTO_BED_LEVELING_UBL, bedlevel.steppers_were_disabled());
         }
@@ -686,7 +688,7 @@ inline void manage_inactivity(const bool no_stepper_sleep=false) {
       && ELAPSED(ms, gcode.previous_move_ms + SEC_TO_MS(EXTRUDER_RUNOUT_SECONDS))
       && !planner.has_blocks_queued()
     ) {
-      #if ENABLED(SWITCHING_EXTRUDER)
+      #if HAS_SWITCHING_EXTRUDER
         bool oldstatus;
         switch (active_extruder) {
           default: oldstatus = stepper.AXIS_IS_ENABLED(E_AXIS, 0); stepper.ENABLE_EXTRUDER(0); break;
@@ -700,7 +702,7 @@ inline void manage_inactivity(const bool no_stepper_sleep=false) {
             #endif // E_STEPPERS > 2
           #endif // E_STEPPERS > 1
         }
-      #else // !SWITCHING_EXTRUDER
+      #else // !HAS_SWITCHING_EXTRUDER
         bool oldstatus;
         switch (active_extruder) {
           default:
@@ -716,7 +718,7 @@ inline void manage_inactivity(const bool no_stepper_sleep=false) {
       planner.set_e_position_mm(olde);
       planner.synchronize();
 
-      #if ENABLED(SWITCHING_EXTRUDER)
+      #if HAS_SWITCHING_EXTRUDER
         switch (active_extruder) {
           default: if (oldstatus) stepper.ENABLE_EXTRUDER(0); else stepper.DISABLE_EXTRUDER(0); break;
           #if E_STEPPERS > 1
@@ -726,12 +728,12 @@ inline void manage_inactivity(const bool no_stepper_sleep=false) {
             #endif // E_STEPPERS > 2
           #endif // E_STEPPERS > 1
         }
-      #else // !SWITCHING_EXTRUDER
+      #else // !HAS_SWITCHING_EXTRUDER
         switch (active_extruder) {
           #define _CASE_RESTORE(N) case N: if (oldstatus) stepper.ENABLE_EXTRUDER(N); else stepper.DISABLE_EXTRUDER(N); break;
           REPEAT(E_STEPPERS, _CASE_RESTORE);
         }
-      #endif // !SWITCHING_EXTRUDER
+      #endif // !HAS_SWITCHING_EXTRUDER
 
       gcode.reset_stepper_timeout(ms);
     }
@@ -1267,8 +1269,6 @@ void setup() {
     delay(10);
     SETUP_LOG("JTAG_DISABLE");
     JTAG_DISABLE();
-  #else
-      #error "DISABLE_(DEBUG|JTAG) is not supported for the selected MCU/Board."
   #endif
 
   TERN_(DYNAMIC_VECTORTABLE, hook_cpu_exceptions()); // If supported, install Marlin exception handlers at runtime
@@ -1319,15 +1319,8 @@ void setup() {
     SETUP_RUN(disableStepperDrivers());
   #endif
 
-  #if HAS_TMC_SPI
-    #if DISABLED(TMC_USE_SW_SPI)
-      SETUP_RUN(SPI.begin());
-    #endif
-    SETUP_RUN(tmc_init_cs_pins());
-  #endif
-
   SETUP_RUN(hal.init_board());
-  
+
   SETUP_RUN(esp_wifi_init());
 
   // Report Reset Reason
@@ -1625,7 +1618,7 @@ void setup() {
 
   //TG 1/30/21 disable watchdog if DEBUG defined in platformio.ini build_flags
   #if ENABLED(USE_WATCHDOG) && DISABLED(DEBUG)
-    SETUP_RUN(watchdog_init());       // Reinit watchdog after HAL_get_reset_source call
+    SETUP_RUN(hal.watchdog_init());       // Reinit watchdog after HAL_get_reset_source call
   #endif
 
   #if ENABLED(EXTERNAL_CLOSED_LOOP_CONTROLLER)

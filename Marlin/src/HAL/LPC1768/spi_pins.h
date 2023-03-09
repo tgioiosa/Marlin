@@ -1,4 +1,4 @@
-/** //TG MODIFIED BY T.GIOIOSA
+/**
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -36,34 +36,7 @@
 //#define SD_MOSI_PIN       P0_09
 //#define SD_SS_PIN         P0_06
 /** external */
-
-//TG 2/15/21 put this here to have correct pinout for MKS SGEN LPC1769, just copy the values defined in
-// Marlin\src\pins\lpc1768\pins_MKS_SBASE.h   LCD SD Card pinout is for EXP1 & EXP2, NOT TFT mode
-#if SD_CONNECTION_IS(LCD)
- // use standard cable and header, SPI and SD detect sre shared with on-board SD card
- // hardware SPI is used for both SD cards. The detect pin is shred between the
- // LCD and onboard SD readers so we disable it.
 #ifndef SD_SCK_PIN
-  #define SD_SCK_PIN        SCK_PIN
- #endif
- #ifndef SD_MISO_PIN
-  #define SD_MISO_PIN       MISO_PIN 
- #endif
- #ifndef SD_MOSI_PIN
-  #define SD_MOSI_PIN       MOSI_PIN
- #endif
- #ifndef SD_SS_PIN
-  #define SD_SS_PIN         SS_PIN
- #endif
-#endif
-
-//TG 2/15/21 This was the original code here in HAL/LPC1768/spi_pins.h and I believe it is wrong!
-// it does not match up with the MKS SGEN board which is an LPC1769 chip with slightly different
-// pinout in this area. The SGEN board has P0_15,16,18 used for LCD D4,RS,EN and P1.23 connects to
-// nothing but header J8 (we need to use J8 for one of the CNC spindle/laser configurations).
-
-/*
-#ifndef SD_SCK_PIN                  //TG LCD SD Card only for Marlin Mode through EXP1 & EXP2, NOT TFT mode
   #define SD_SCK_PIN        P0_15
 #endif
 #ifndef SD_MISO_PIN
@@ -79,4 +52,3 @@
   #undef SDSS
   #define SDSS          SD_SS_PIN
 #endif
-*/

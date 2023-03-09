@@ -51,7 +51,7 @@
 SpindleLaser cutter = {};
 uint16_t SpindleLaser::power;                                         //TG 9/30/21 changed to uint16_t for more resolution
 bool SpindleLaser::enable_state;                                      // Virtual enable state, controls enable pin if present and or apply power if > 0
-        SpindleLaser::last_power_applied; // = 0                      // Basic power state tracking
+uint16_t SpindleLaser::last_power_applied; // = 0                      // Basic power state tracking
 #if ENABLED(LASER_FEATURE)
   cutter_test_pulse_t SpindleLaser::testPulse = 50;                   // (ms) Test fire pulse default duration
   uint8_t SpindleLaser::last_block_power; // = 0                      // Track power changes for dynamic inline power

@@ -1,4 +1,4 @@
-/** //TG MODIFIED BY T.GIOIOSA
+/**
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -38,12 +38,12 @@ void safe_delay(millis_t ms);           // Delay ensuring that temperatures are 
   // 16x16 bit arrays
   template <int W, int H>
   struct FlagBits {
-    typename IF<(W>8), uint16_t, uint8_t>::type bits[H];
-    void fill()                                   { memset(bits, 0xFF, sizeof(bits)); }
-    void reset()                                  { memset(bits, 0x00, sizeof(bits)); }
-    void unmark(const uint8_t x, const uint8_t y) { CBI(bits[y], x); }
-    void mark(const uint8_t x, const uint8_t y)   { SBI(bits[y], x); }
-    bool marked(const uint8_t x, const uint8_t y) { return TEST(bits[y], x); }
+    bits_t(W) flags[H];
+    void fill()                                   { memset(flags, 0xFF, sizeof(flags)); }
+    void reset()                                  { memset(flags, 0x00, sizeof(flags)); }
+    void unmark(const uint8_t x, const uint8_t y) { CBI(flags[y], x); }
+    void mark(const uint8_t x, const uint8_t y)   { SBI(flags[y], x); }
+    bool marked(const uint8_t x, const uint8_t y) { return TEST(flags[y], x); }
     inline void unmark(const xy_int8_t &xy)       { unmark(xy.x, xy.y); }
     inline void mark(const xy_int8_t &xy)         { mark(xy.x, xy.y); }
     inline bool marked(const xy_int8_t &xy)       { return marked(xy.x, xy.y); }
@@ -62,6 +62,8 @@ void safe_delay(millis_t ms);           // Delay ensuring that temperatures are 
 //TG this class saves the original val_ to ref_ , then sets ref_ to temp_val
 // the class destroys when it goes out of scope (i.e. function that created it ends)
 // upon being destroyed, it restores the ref_ to it's original value it had
+// A restorer instance remembers a variable's value before setting a
+// new value, then restores the old value when it goes out of scope.
 // Put operator= on your type to get extended behavior on value change.
 template<typename T>
 class restorer {

@@ -27,6 +27,7 @@
 #if HAS_CUTTER
 
 #include "../gcode.h"
+#include "../../module/temperature.h"           //TG 9/21/21 added
 #include "../../feature/spindle_laser.h"
 #include "../../module/stepper.h"
 #include "../../module/planner.h"
@@ -117,11 +118,11 @@ void GcodeSuite::M3_M4(const bool is_M4) {      //TG set cutter.unitPower from '
   #endif
   //WRITE(P4_28,1);
   auto get_s_power = [] {  //TG this lambda function inside a function gets the SXXXXX value, i.e. 7000 for S7000, and sets unitPower
-    float u;
+    float u = 0;
     if (parser.seenval('S')) {								// speed was given
       const float v = parser.value_float();					// v is the RPM or PWM or % Target Value from the LCD display
       u = TERN(LASER_POWER_TRAP, v, cutter.power_to_range(v));
-	}
+	  }
     else if (cutter.cutter_mode == CUTTER_MODE_STANDARD) 	// if no S value given, use SPEED_POWER_STARTUP
       u = cutter.cpwr_to_upwr(SPEED_POWER_STARTUP);
 
@@ -148,19 +149,22 @@ void GcodeSuite::M3_M4(const bool is_M4) {      //TG set cutter.unitPower from '
   else {
     cutter.set_enabled(true);		// turn on ENABLE signal
     get_s_power();
-    cutter.apply_power(
-      #if ENABLED(SPINDLE_SERVO)
-        cutter.unitPower
-      #elif (ENABLED(SPINDLE_LASER_USE_PWM) && cutter.spindle_use_pid == false) ////TG 9/15/21 if using PID in RPMTimer.cpp, it sets power, so skip below
-        cutter.upower_to_ocr(cutter.unitPower)				// set a PWM value
-      #else
-        cutter.unitPower > 0 ? SPINDLE_LASER_PWM_RES : 0	// set on=1023 or off=0
-      #endif
-    );
+    if (cutter.spindle_use_pid == false)  //TG 9/15/21 if using classic PID algorithm in RPMTimer.cpp, it will set the power, so skip below
+    {
+      cutter.apply_power(
+        #if ENABLED(SPINDLE_SERVO)
+          cutter.unitPower
+        #elif ENABLED(SPINDLE_LASER_USE_PWM)
+          cutter.upower_to_ocr(cutter.unitPower)				// set a PWM value
+        #else
+          cutter.unitPower > 0 ? SPINDLE_LASER_PWM_RES : 0	// set on=1023 or off=0
+        #endif
+      );
+    }
     TERN_(SPINDLE_CHANGE_DIR, cutter.set_reverse(is_M4));
   }
 
-  SpindleLaser::isReady = true;
+  SpindleLaser::isReadyForUI = true;
     
   //TG added 5/12/22 - update TARGET_RPM variable used for I2C reply to AVR Controller request or Serial/RS485 send to VFD Controller
   cutter.TARGET_RPM = cutter.menuPower;               
@@ -207,6 +211,7 @@ void GcodeSuite::M5() {
       cutter.cutter_mode = CUTTER_MODE_STANDARD;  // Switch from inline to standard mode.
     }
   } 
+  cutter.set_enabled(false);                      // Disable enable output setting
   
   //TG added 5/12/22 - update TARGET_RPM for I2C to reply to AVR Controller request or Serial/RS485 send to VFD Controller
   cutter.TARGET_RPM = 0;                              
@@ -228,3 +233,5 @@ void GcodeSuite::M5() {
  #endif // ENABLED(VFD_CONTROLLER)  
 
 }
+
+#endif // HAS_CUTTER

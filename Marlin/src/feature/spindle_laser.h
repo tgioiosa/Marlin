@@ -53,6 +53,8 @@ enum CutterMode : int8_t {
 
 class SpindleLaser {
 public:
+  static CutterMode cutter_mode;
+
   //TG - takes a float as percent and returns 0 to SPINDLE_LASER_PWM_RES, minimum resolution is 1 count
   static constexpr uint16_t pct_to_ocr(const_float_t pct) { return uint16_t(PCT_TO_PWM(pct)); }  //TG 9/30/21 changed to uint16_t for more resolution
   // cpower = configured values (e.g., SPEED_POWER_MAX)
@@ -174,7 +176,7 @@ public:
     cutter_power_t upwr;
     switch (pwrUnit) {
       case _CUTTER_POWER_PWM255: {  // PWM
-        const uint8_t pmin = pct_to_ocr(min_pct), pmax = pct_to_ocr(max_pct);
+        const uint16_t pmin = pct_to_ocr(min_pct), pmax = pct_to_ocr(max_pct);
         upwr = cutter_power_t(constrain(pwr, pmin, pmax));
       } break;
       case _CUTTER_POWER_PERCENT:   // Percent

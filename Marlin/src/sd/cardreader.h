@@ -80,11 +80,16 @@ typedef struct {
        filenameIsDir:1,
        workDirIsRoot:1,
        abort_sd_printing:1
+       #if DO_LIST_BIN_FILES
+         , filenameIsBin:1
+       #endif
        #if ENABLED(BINARY_FILE_TRANSFER)
          , binary_mode:1
        #endif
     ;
 } card_flags_t;
+
+enum ListingFlags : uint8_t { LS_LONG_FILENAME, LS_ONLY_BIN, LS_TIMESTAMP };
 
 #if ENABLED(AUTO_REPORT_SD_STATUS)
   #include "../libs/autoreport.h"
@@ -111,7 +116,7 @@ public:
 
   static void changeMedia(DiskIODriver *_driver) { driver = _driver; }
 
-  static SdFile getroot() { return root; }
+  static MediaFile getroot() { return root; }
 
   static void mount();
   static void release();
@@ -185,12 +190,12 @@ public:
    * Relative paths apply to the workDir.
    *
    * update_cwd: Pass 'true' to update the workDir on success.
-   *   inDirPtr: On exit your pointer points to the target SdFile.
+   *   inDirPtr: On exit your pointer points to the target MediaFile.
    *             A nullptr indicates failure.
    *       path: Start with '/' for abs path. End with '/' to get a folder ref.
    *       echo: Set 'true' to print the path throughout the loop.
    */
-  static const char* diveToFile(const bool update_cwd, SdFile* &inDirPtr, const char * const path, const bool echo=false);
+  static const char* diveToFile(const bool update_cwd, MediaFile* &inDirPtr, const char * const path, const bool echo=false);
 
   #if ENABLED(SDCARD_SORT_ALPHA)
     static void presort();
@@ -204,7 +209,7 @@ public:
     FORCE_INLINE static void getfilename_sorted(const uint16_t nr) { selectFileByIndex(nr); }
   #endif
 
-  static void ls(TERN_(LONG_FILENAME_HOST_SUPPORT, bool includeLongNames=false));
+  static void ls(const uint8_t lsflags);
 
   #if ENABLED(POWER_LOSS_RECOVERY)
     static bool jobRecoverFileExists();
@@ -212,9 +217,13 @@ public:
     static void removeJobRecoveryFile();
   #endif
 
+  // Binary flag for the current file
+  static bool fileIsBinary() { return TERN0(DO_LIST_BIN_FILES, flag.filenameIsBin); }
+  static void setBinFlag(const bool bin) { TERN(DO_LIST_BIN_FILES, flag.filenameIsBin = bin, UNUSED(bin)); }
+
   // Current Working Dir - Set by cd, cdup, cdroot, and diveToFile(true, ...)
   static char* getWorkDirName()  { workDir.getDosName(filename); return filename; }
-  static SdFile& getWorkDir()    { return workDir.isOpen() ? workDir : root; }
+  static MediaFile& getWorkDir()    { return workDir.isOpen() ? workDir : root; }
 
   // Print File stats
   static uint32_t getFileSize()  { return filesize; }
@@ -253,7 +262,7 @@ private:
   //
   // Working directory and parents
   //
-  static SdFile root, workDir, workDirParents[MAX_DIR_DEPTH];
+  static MediaFile root, workDir, workDirParents[MAX_DIR_DEPTH];
   static uint8_t workDirDepth;
 
   //
@@ -313,8 +322,8 @@ private:
   #endif // SDCARD_SORT_ALPHA
 
   static DiskIODriver *driver;
-  static SdVolume volume;
-  static SdFile file;
+  static MarlinVolume volume;
+  static MediaFile file;
 
   static uint32_t filesize, // Total size of the current file, in bytes
                   sdpos;    // Index most recently read (one behind file.getPos)
@@ -331,14 +340,12 @@ private:
   //
   // Directory items
   //
-  static bool is_dir_or_gcode(const dir_t &p);
-  static int countItems(SdFile dir);
-  static void selectByIndex(SdFile dir, const uint8_t index);
-  static void selectByName(SdFile dir, const char * const match);
+  static bool is_visible_entity(const dir_t &p OPTARG(CUSTOM_FIRMWARE_UPLOAD, const bool onlyBin=false));
+  static int countItems(MediaFile dir);
+  static void selectByIndex(MediaFile dir, const uint8_t index);
+  static void selectByName(MediaFile dir, const char * const match);
   static void printListing(
-    SdFile parent
-    OPTARG(LONG_FILENAME_HOST_SUPPORT, const bool includeLongNames=false)
-    , const char * const prepend=nullptr
+    MediaFile parent, const char * const prepend, const uint8_t lsflags
     OPTARG(LONG_FILENAME_HOST_SUPPORT, const char * const prependLong=nullptr)
   );
 
@@ -349,7 +356,7 @@ private:
 
 #if ENABLED(USB_FLASH_DRIVE_SUPPORT)
   #define IS_SD_INSERTED() DiskIODriver_USBFlash::isInserted()
-#elif PIN_EXISTS(SD_DETECT)
+#elif HAS_SD_DETECT
   #define IS_SD_INSERTED() (READ(SD_DETECT_PIN) == SD_DETECT_STATE)
 #else
   // No card detect line? Assume the card is inserted.

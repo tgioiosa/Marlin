@@ -118,6 +118,7 @@ struct ForwardSerial : public SerialBase< ForwardSerial<SerialT> > {
 
   SerialT & out;
   NO_INLINE size_t write(uint8_t c) { return out.write(c); }
+  size_t write(char* src, size_t length) { return out.write(src, length);}  //TG 3/9/23 added back - bugfix-2.1.x had removed it
   void flush()            { out.flush();  }
   void begin(long br)     { out.begin(br); }
   void end()              { out.end(); }

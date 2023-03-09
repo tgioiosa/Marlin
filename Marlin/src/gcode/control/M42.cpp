@@ -22,6 +22,8 @@
 
 #include "../../inc/MarlinConfig.h"
 
+#include <pwm.h>    //TG 6/27/21 needed for TG-modified code below
+
 #if ENABLED(DIRECT_PIN_CONTROL)
 
 #include "../gcode.h"
