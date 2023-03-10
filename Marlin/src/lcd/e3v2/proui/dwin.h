@@ -26,7 +26,11 @@
  * Author: Miguel A. Risco-Castillo (MRISCOC)
  * Version: 3.21.2
  * Date: 2022/12/02
+ * Version: 3.21.2
+ * Date: 2022/12/02
  */
+
+#include "../../../inc/MarlinConfig.h"
 
 #include "../../../inc/MarlinConfig.h"
 
@@ -74,24 +78,16 @@ enum processID : uint8_t {
   NothingToDo
 };
 
-#if EITHER(DWIN_PID_TUNE, MPCTEMP)
+enum pidresult_t : uint8_t {
+  PID_BAD_EXTRUDER_NUM,
+  PID_TEMP_TOO_HIGH,
+  PID_TUNING_TIMEOUT,
+  PID_EXTR_START,
+  PID_BED_START,
+  PID_DONE
+};
 
-  enum tempcontrol_t : uint8_t {
-    #if DWIN_PID_TUNE
-      PID_DONE,
-      PIDTEMP_START,
-      PIDTEMPBED_START,
-      PID_BAD_HEATER_ID,
-      PID_TEMP_TOO_HIGH,
-      PID_TUNING_TIMEOUT,
-    #endif
-    #if ENABLED(MPCTEMP)
-      MPC_DONE,
-      MPCTEMP_START,
-      MPC_TEMP_ERROR,
-      MPC_INTERRUPTED
-    #endif
-  };
+#endif
 
 #endif
 
@@ -154,9 +150,7 @@ static constexpr size_t eeprom_data_size = sizeof(HMI_data_t);
 
 typedef struct {
   int8_t Color[3];                    // Color components
-  #if DWIN_PID_TUNE
-    tempcontrol_t pidresult = PID_DONE;
-  #endif
+  TERN_(HAS_PID_HEATING, pidresult_t pidresult   = PID_DONE);
   uint8_t Select          = 0;        // Auxiliary selector variable
   AxisEnum axis           = X_AXIS;   // Axis Select
 } HMI_value_t;
@@ -232,6 +226,12 @@ void ParkHead();
   bool UBLValidMesh();
   void UBLMeshSave();
   void UBLMeshLoad();
+#endif
+#if ENABLED(HOST_SHUTDOWN_MENU_ITEM) && defined(SHUTDOWN_ACTION)
+  void HostShutDown();
+#endif
+#if !HAS_BED_PROBE
+  void HomeZandDisable();
 #endif
 #if ENABLED(HOST_SHUTDOWN_MENU_ITEM) && defined(SHUTDOWN_ACTION)
   void HostShutDown();

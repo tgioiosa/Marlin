@@ -577,10 +577,10 @@ namespace Language_ru {
   LSTR MSG_TOUCHMI_ZTEST                    = _UxGT("Тест Z-смещения");
   LSTR MSG_TOUCHMI_SAVE                     = _UxGT("Сохранить");
   LSTR MSG_MANUAL_DEPLOY_TOUCHMI            = _UxGT("Установить TouchMI");
-  LSTR MSG_MANUAL_DEPLOY                    = _UxGT("Выдвинуть зонд");
-  LSTR MSG_MANUAL_STOW                      = _UxGT("Втянуть зонд");
+  LSTR MSG_MANUAL_DEPLOY                    = _UxGT("Установить зонд");
+  LSTR MSG_MANUAL_STOW                      = _UxGT("Загрузить зонд");
   LSTR MSG_HOME_FIRST                       = _UxGT("Сначала паркуй %s");
-  LSTR MSG_ZPROBE_OFFSETS                   = _UxGT("Смещение Z-зонда");
+  LSTR MSG_ZPROBE_OFFSETS                   = _UxGT("Смещения Z-зонда");
   LSTR MSG_ZPROBE_XOFFSET                   = _UxGT("Смещение X");
   LSTR MSG_ZPROBE_YOFFSET                   = _UxGT("Смещение Y");
   LSTR MSG_ZPROBE_ZOFFSET                   = _UxGT("Смещение Z");

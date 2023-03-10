@@ -33,6 +33,10 @@
   #include "../lcd/e3v2/proui/dwin.h"
 #endif
 
+#if ENABLED(DWIN_LCD_PROUI)
+  #include "../lcd/e3v2/proui/dwin.h"
+#endif
+
 #if HAS_BED_PROBE
   enum ProbePtRaise : uint8_t {
     PROBE_PT_NONE,      // No raise or stow after run_z_probe
@@ -50,7 +54,7 @@
 #endif
 
 #if ALL(DWIN_LCD_PROUI, INDIVIDUAL_AXIS_HOMING_SUBMENU, MESH_BED_LEVELING)
-  #define Z_POST_CLEARANCE HMI_data.z_after_homing
+  #define Z_POST_CLEARANCE HMI_data.z_after_homing;
 #elif defined(Z_AFTER_HOMING)
   #define Z_POST_CLEARANCE Z_AFTER_HOMING
 #elif defined(Z_HOMING_HEIGHT)

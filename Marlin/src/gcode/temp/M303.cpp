@@ -64,6 +64,9 @@ void GcodeSuite::M303() {
     OPTCODE(PIDTEMP,        case 0 ... HOTENDS - 1: default_temp = PREHEAT_1_TEMP_HOTEND;  break)
     OPTCODE(PIDTEMPBED,     case H_BED:             default_temp = PREHEAT_1_TEMP_BED;     break)
     OPTCODE(PIDTEMPCHAMBER, case H_CHAMBER:         default_temp = PREHEAT_1_TEMP_CHAMBER; break)
+    OPTCODE(PIDTEMP,        case 0 ... HOTENDS - 1: default_temp = PREHEAT_1_TEMP_HOTEND;  break)
+    OPTCODE(PIDTEMPBED,     case H_BED:             default_temp = PREHEAT_1_TEMP_BED;     break)
+    OPTCODE(PIDTEMPCHAMBER, case H_CHAMBER:         default_temp = PREHEAT_1_TEMP_CHAMBER; break)
     default:
       SERIAL_ECHOPGM(STR_PID_AUTOTUNE);
       SERIAL_ECHOLNPGM(STR_PID_BAD_HEATER_ID);
@@ -78,7 +81,16 @@ void GcodeSuite::M303() {
   const celsius_t temp = seenS ? parser.value_celsius() : default_temp;
   const bool u = parser.boolval('U');
 
-  TERN_(DWIN_PID_TUNE, DWIN_StartM303(seenC, c, seenS, hid, temp));
+  #if ENABLED(DWIN_LCD_PROUI) && EITHER(PIDTEMP, PIDTEMPBED)
+    if (seenC) HMI_data.PidCycles = c;
+    if (seenS) {
+      switch (hid) {
+        OPTCODE(PIDTEMP,    case 0 ... HOTENDS - 1: HMI_data.HotendPidT = temp; break)
+        OPTCODE(PIDTEMPBED, case H_BED:             HMI_data.BedPidT = temp;    break)
+        default: break;
+      }
+    }
+  #endif
 
   IF_DISABLED(BUSY_WHILE_HEATING, KEEPALIVE_STATE(NOT_BUSY));
 

@@ -764,7 +764,7 @@ volatile bool Temperature::raw_temps_ready = false;
     TERN_(HAS_FAN_LOGIC, fan_update_ms = next_temp_ms + fan_update_interval_ms);
 
     TERN_(EXTENSIBLE_UI, ExtUI::onPidTuning(ExtUI::result_t::PID_STARTED));
-    TERN_(DWIN_PID_TUNE, DWIN_PidTuning(isbed ? PIDTEMPBED_START : PIDTEMP_START));
+    TERN_(DWIN_LCD_PROUI, DWIN_PidTuning(isbed ? PIDTEMPBED_START : PIDTEMP_START));
 
     if (target > GHV(CHAMBER_MAX_TARGET, BED_MAX_TARGET, temp_range[heater_id].maxtemp - (HOTEND_OVERSHOOT))) {
       SERIAL_ECHOPGM(STR_PID_AUTOTUNE);
@@ -1745,30 +1745,25 @@ void Temperature::mintemp_error(const heater_id_t heater_id) {
       #endif
 
       if (!bed_timed_out) {
-        if (is_bed_preheating()) {
-          temp_bed.soft_pwm_amount = MAX_BED_POWER >> 1;
-        }
-        else {
-          #if ENABLED(PIDTEMPBED)
-            temp_bed.soft_pwm_amount = WITHIN(temp_bed.celsius, BED_MINTEMP, BED_MAXTEMP) ? (int)get_pid_output_bed() >> 1 : 0;
-          #else
-            // Check if temperature is within the correct band
-            if (WITHIN(temp_bed.celsius, BED_MINTEMP, BED_MAXTEMP)) {
-              #if ENABLED(BED_LIMIT_SWITCHING)
-                if (temp_bed.is_above_target((BED_HYSTERESIS) - 1))
-                  temp_bed.soft_pwm_amount = 0;
-                else if (temp_bed.is_below_target((BED_HYSTERESIS) - 1))
-                  temp_bed.soft_pwm_amount = MAX_BED_POWER >> 1;
-              #else // !PIDTEMPBED && !BED_LIMIT_SWITCHING
-                temp_bed.soft_pwm_amount = temp_bed.is_below_target() ? MAX_BED_POWER >> 1 : 0;
-              #endif
-            }
-            else {
-              temp_bed.soft_pwm_amount = 0;
-              WRITE_HEATER_BED(LOW);
-            }
-          #endif
-        }
+        #if ENABLED(PIDTEMPBED)
+          temp_bed.soft_pwm_amount = WITHIN(temp_bed.celsius, BED_MINTEMP, BED_MAXTEMP) ? (int)get_pid_output_bed() >> 1 : 0;
+        #else
+          // Check if temperature is within the correct band
+          if (WITHIN(temp_bed.celsius, BED_MINTEMP, BED_MAXTEMP)) {
+            #if ENABLED(BED_LIMIT_SWITCHING)
+              if (temp_bed.is_above_target((BED_HYSTERESIS) - 1))
+                temp_bed.soft_pwm_amount = 0;
+              else if (temp_bed.is_below_target((BED_HYSTERESIS) - 1))
+                temp_bed.soft_pwm_amount = MAX_BED_POWER >> 1;
+            #else // !PIDTEMPBED && !BED_LIMIT_SWITCHING
+              temp_bed.soft_pwm_amount = temp_bed.is_below_target() ? MAX_BED_POWER >> 1 : 0;
+            #endif
+          }
+          else {
+            temp_bed.soft_pwm_amount = 0;
+            WRITE_HEATER_BED(LOW);
+          }
+        #endif
       }
 
     } while (false);
@@ -2556,7 +2551,7 @@ void Temperature::updateTemperaturesFromRawValues() {
   #define TP_CMP(S,A,B) (TEMPDIR(S) < 0 ? ((A)<(B)) : ((A)>(B)))
   #if ENABLED(THERMAL_PROTECTION_BED)
     if (TP_CMP(BED, temp_bed.getraw(), maxtemp_raw_BED)) maxtemp_error(H_BED);
-    if (temp_bed.target > 0 && !is_bed_preheating() && TP_CMP(BED, mintemp_raw_BED, temp_bed.getraw())) mintemp_error(H_BED);
+    if (temp_bed.target > 0 && TP_CMP(BED, mintemp_raw_BED, temp_bed.getraw())) mintemp_error(H_BED);
   #endif
 
   #if BOTH(HAS_HEATED_CHAMBER, THERMAL_PROTECTION_CHAMBER)

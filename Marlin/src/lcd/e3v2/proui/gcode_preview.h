@@ -1,9 +1,8 @@
 /**
- * Marlin 3D Printer Firmware
- * Copyright (c) 2022 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
- *
- * Based on Sprinter and grbl.
- * Copyright (c) 2011 Camiel Gubbels / Erik van der Zalm
+ * DWIN g-code thumbnail preview
+ * Author: Miguel A. Risco-Castillo
+ * version: 3.1.2
+ * Date: 2022/09/03
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
