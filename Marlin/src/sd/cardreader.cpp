@@ -125,6 +125,8 @@ char CardReader::proc_filenames[SD_PROCEDURE_DEPTH][MAXPATHNAMELENGTH];
 uint32_t CardReader::filesize, CardReader::sdpos;
 
 CardReader::CardReader() {
+#pragma GCC diagnostic push                         //TG save GCC state of warnings
+#pragma GCC diagnostic ignored "-Wclass-memaccess"  //TG added to suppress memset() warnings here only
   #if ENABLED(SDCARD_SORT_ALPHA)
     sort_count = 0;
     #if ENABLED(SDSORT_GCODE)
@@ -150,6 +152,7 @@ CardReader::CardReader() {
   #if PIN_EXISTS(SDPOWER)
     OUT_WRITE(SDPOWER_PIN, HIGH); // Power the SD reader
   #endif
+  #pragma GCC diagnostic pop                        //TG restore GCC state of warnings
 }
 
 //

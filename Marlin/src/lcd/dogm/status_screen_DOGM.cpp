@@ -409,7 +409,7 @@ void MarlinUI::draw_status_screen() {
     static char elapsed_string[16];
     #if ENABLED(SHOW_REMAINING_TIME)
       static u8g_uint_t estimation_x_pos = 0;
-      static char estimation_string[10];
+      static char estimation_string[14];  //TG changed from 10
       #if BOTH(DOGM_SD_PERCENT, ROTATE_PROGRESS_DISPLAY)
         static u8g_uint_t progress_x_pos = 0;
         static uint8_t progress_state = 0;
