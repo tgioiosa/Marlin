@@ -1,9 +1,9 @@
 /**
  * Marlin 3D Printer Firmware
- * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
+ * Copyright (C) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
  * Based on Sprinter and grbl.
- * Copyright (c) 2011 Camiel Gubbels / Erik van der Zalm
+ * Copyright (C) 2011 Camiel Gubbels / Erik van der Zalm
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,11 +26,8 @@
 
 #include "power_monitor.h"
 
-#if HAS_MARLINUI_MENU
-  #include "../lcd/marlinui.h"
-  #include "../lcd/lcdprint.h"
-#endif
-
+#include "../lcd/marlinui.h"
+#include "../lcd/lcdprint.h"
 #include "../libs/numtostr.h"
 
 uint8_t PowerMonitor::flags; // = 0
@@ -53,15 +50,15 @@ PowerMonitor power_monitor; // Single instance - this calls the constructor
     void PowerMonitor::draw_current() {
       const float amps = getAmps();
       lcd_put_u8str(amps < 100 ? ftostr31ns(amps) : ui16tostr4rj((uint16_t)amps));
-      lcd_put_lchar('A');
+      lcd_put_wchar('A');
     }
   #endif
 
-  #if ENABLED(POWER_MONITOR_VOLTAGE)
+  #if HAS_POWER_MONITOR_VREF
     void PowerMonitor::draw_voltage() {
       const float volts = getVolts();
       lcd_put_u8str(volts < 100 ? ftostr31ns(volts) : ui16tostr4rj((uint16_t)volts));
-      lcd_put_lchar('V');
+      lcd_put_wchar('V');
     }
   #endif
 
@@ -69,7 +66,7 @@ PowerMonitor power_monitor; // Single instance - this calls the constructor
     void PowerMonitor::draw_power() {
       const float power = getPower();
       lcd_put_u8str(power < 100 ? ftostr31ns(power) : ui16tostr4rj((uint16_t)power));
-      lcd_put_lchar('W');
+      lcd_put_wchar('W');
     }
   #endif
 

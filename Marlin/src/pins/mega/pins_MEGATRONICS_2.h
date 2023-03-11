@@ -25,7 +25,9 @@
  * MegaTronics v2.0 pin assignments
  */
 
-#include "env_validate.h"
+#if NOT_TARGET(__AVR_ATmega2560__)
+  #error "Oops! Select 'Arduino/Genuino Mega or Mega 2560' in 'Tools > Board.'"
+#endif
 
 #define BOARD_INFO_NAME "Megatronics v2.0"
 //
@@ -144,10 +146,10 @@
     #define BTN_ENC                           43
   #else
     // Buttons attached to shift register of reprapworld keypad v1.1
-    #define SHIFT_CLK_PIN                     63
-    #define SHIFT_LD_PIN                      42
-    #define SHIFT_OUT_PIN                     17
-    #define SHIFT_EN_PIN                      17
+    #define SHIFT_CLK                         63
+    #define SHIFT_LD                          42
+    #define SHIFT_OUT                         17
+    #define SHIFT_EN                          17
   #endif
 
 #endif // HAS_WIRED_LCD

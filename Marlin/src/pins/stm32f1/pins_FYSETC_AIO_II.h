@@ -21,13 +21,13 @@
  */
 #pragma once
 
-#include "env_validate.h"
+#if NOT_TARGET(__STM32F1__)
+  #error "Oops! Select an STM32F1 board in 'Tools > Board.'"
+#endif
 
 #define BOARD_INFO_NAME   "FYSETC AIO II"
 #define BOARD_WEBSITE_URL "fysetc.com"
 
-#define BOARD_NO_NATIVE_USB
-#define RESET_STEPPERS_ON_MEDIA_INSERT
 #define DISABLE_JTAG
 
 #define pins_v2_20190128                          // new pins define
@@ -40,9 +40,9 @@
 //
 #if EITHER(NO_EEPROM_SELECTED, FLASH_EEPROM_EMULATION)
   #define FLASH_EEPROM_EMULATION
-  #define EEPROM_PAGE_SIZE     (0x800U)           // 2K
+  #define EEPROM_PAGE_SIZE     (0x800U)           // 2KB
   #define EEPROM_START_ADDRESS (0x8000000UL + (STM32_FLASH_SIZE) * 1024UL - (EEPROM_PAGE_SIZE) * 2UL)
-  #define MARLIN_EEPROM_SIZE    EEPROM_PAGE_SIZE  // 2K
+  #define MARLIN_EEPROM_SIZE    EEPROM_PAGE_SIZE  // 2KB
 #endif
 
 //
@@ -85,29 +85,18 @@
 #define E0_ENABLE_PIN                       PC13
 
 #if HAS_TMC_UART
+
   /**
    * TMC2208/TMC2209 stepper drivers
    */
 
+  //
   // Hardware serial with switch
+  //
   #define X_HARDWARE_SERIAL  MSerial2
   #define Y_HARDWARE_SERIAL  MSerial2
   #define Z_HARDWARE_SERIAL  MSerial2
   #define E0_HARDWARE_SERIAL MSerial2
-
-  // Default TMC slave addresses
-  #ifndef X_SLAVE_ADDRESS
-    #define X_SLAVE_ADDRESS  0
-  #endif
-  #ifndef Y_SLAVE_ADDRESS
-    #define Y_SLAVE_ADDRESS  1
-  #endif
-  #ifndef Z_SLAVE_ADDRESS
-    #define Z_SLAVE_ADDRESS  2
-  #endif
-  #ifndef E0_SLAVE_ADDRESS
-    #define E0_SLAVE_ADDRESS 3
-  #endif
 
   // The 4xTMC2209 module doesn't have a serial multiplexer and
   // needs to set *_SLAVE_ADDRESS in Configuration_adv.h for X,Y,Z,E0
@@ -119,6 +108,7 @@
 
   // Reduce baud rate to improve software serial reliability
   #define TMC_BAUD_RATE                    19200
+
 #endif
 
 //
@@ -166,7 +156,9 @@
     #endif
 
     //#define LCD_CONTRAST_INIT              190
-    //#define LCD_SCREEN_ROTATE              180  // 0, 90, 180, 270
+    //#define LCD_SCREEN_ROT_90
+    //#define LCD_SCREEN_ROT_180
+    //#define LCD_SCREEN_ROT_270
 
   #endif
 

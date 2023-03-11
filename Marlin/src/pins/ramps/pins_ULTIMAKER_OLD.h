@@ -60,7 +60,9 @@
 //#define BOARD_REV_1_0
 //#define BOARD_REV_1_5
 
-#include "env_validate.h"
+#if NOT_TARGET(__AVR_ATmega1280__, __AVR_ATmega2560__)
+  #error "Oops! Select 'Arduino/Genuino Mega or Mega 2560' in 'Tools > Board.'"
+#endif
 
 #ifdef BOARD_REV_1_1_TO_1_3
   #define BOARD_INFO_NAME       "Ultimaker 1.1-1.3"
@@ -72,7 +74,7 @@
   #define BOARD_INFO_NAME       "Ultimaker 1.5.4+"
 #endif
 #define DEFAULT_MACHINE_NAME    "Ultimaker"
-#define DEFAULT_SOURCE_CODE_URL "github.com/Ultimaker/Marlin"
+#define DEFAULT_SOURCE_CODE_URL "https://github.com/Ultimaker/Marlin"
 
 //
 // Limit Switches
@@ -163,7 +165,7 @@
 //
 // LCD / Controller
 //
-#if EITHER(BOARD_REV_1_0, BOARD_REV_1_1_TO_1_3)
+#if ANY(BOARD_REV_1_0, BOARD_REV_1_1_TO_1_3)
 
   #define LCD_PINS_RS                         24
   #define LCD_PINS_ENABLE                     22
@@ -172,7 +174,7 @@
   #define LCD_PINS_D6                         32
   #define LCD_PINS_D7                         30
 
-#elif BOTH(BOARD_REV_1_5, HAS_WIRED_LCD)
+#elif BOTH(BOARD_REV_1_5, IS_ULTRA_LCD)
 
   #define BEEPER_PIN                          18
 
@@ -195,10 +197,10 @@
   #else                                           // !IS_NEWPANEL - Old style panel with shift register
 
     // Buttons attached to a shift register
-    #define SHIFT_CLK_PIN                     38
-    #define SHIFT_LD_PIN                      42
-    #define SHIFT_OUT_PIN                     40
-    #define SHIFT_EN_PIN                      17
+    #define SHIFT_CLK                         38
+    #define SHIFT_LD                          42
+    #define SHIFT_OUT                         40
+    #define SHIFT_EN                          17
 
     #define LCD_PINS_RS                       16
     #define LCD_PINS_ENABLE                    5

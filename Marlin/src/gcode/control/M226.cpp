@@ -26,9 +26,7 @@
 
 #include "../gcode.h"
 #include "../../MarlinCore.h" // for pin_is_protected and idle()
-#include "../../module/planner.h"
-
-void protected_pin_err();
+#include "../../module/stepper.h"
 
 /**
  * M226: Wait until the specified pin reaches the state required (M226 P<pin> S<state>)
