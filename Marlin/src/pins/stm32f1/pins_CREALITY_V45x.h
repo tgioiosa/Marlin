@@ -19,13 +19,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-#pragma once
 
 /**
  * Creality v4.5.2 and v4.5.3 (STM32F103RET6) board pin assignments
  */
 
-#include "env_validate.h"
+#if NOT_TARGET(__STM32F1__)
+  #error "Oops! Select an STM32F1 board in 'Tools > Board.'"
+#endif
 
 #define DEFAULT_MACHINE_NAME "Creality3D"
 
@@ -47,9 +48,9 @@
 #if ENABLED(IIC_BL24CXX_EEPROM)
   #define IIC_EEPROM_SDA                    PA11
   #define IIC_EEPROM_SCL                    PA12
-  #define MARLIN_EEPROM_SIZE               0x800  // 2K (24C16)
+  #define MARLIN_EEPROM_SIZE               0x800  // 2Kb (24C16)
 #elif ENABLED(SDCARD_EEPROM_EMULATION)
-  #define MARLIN_EEPROM_SIZE               0x800  // 2K
+  #define MARLIN_EEPROM_SIZE               0x800  // 2Kb
 #endif
 
 //
@@ -64,9 +65,7 @@
 //
 // Probe
 //
-#ifndef PROBE_TARE_PIN
-  #define PROBE_TARE_PIN                    PA5
-#endif
+#define PROBE_TARE_PIN                      PA5
 
 //
 // Steppers
@@ -97,7 +96,7 @@
 // Heaters / Fans
 //
 
-#define FAN_SOFT_PWM_REQUIRED
+#define FAN_SOFT_PWM
 
 //
 // SD Card

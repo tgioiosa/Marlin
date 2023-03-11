@@ -21,10 +21,12 @@
  */
 #pragma once
 
-#include "env_validate.h"
+#if NOT_TARGET(__STM32F1__)
+  #error "Oops! Select an STM32F1 board in 'Tools > Board.'"
+#endif
 
 /**
- * 10 Dec 2017 Victor Perez Marlin for stm32f1 test
+ * 21017 Victor Perez Marlin for stm32f1 test
  */
 
 #define BOARD_INFO_NAME      "STM3R Mini"
@@ -91,7 +93,7 @@
 #endif
 #define FAN1_PIN                            PD13
 
-#define FAN_SOFT_PWM_REQUIRED
+#define FAN_SOFT_PWM
 
 //
 // Temperature Sensors
@@ -144,7 +146,7 @@
       #error "LCD_I2C_PANELOLU2 is not supported."
     #elif ENABLED(LCD_I2C_VIKI)
       #error "LCD_I2C_VIKI is not supported."
-    #elif EITHER(VIKI2, miniVIKI)
+    #elif ANY(VIKI2, miniVIKI)
       #error "VIKI2 / miniVIKI is not supported."
     #elif ENABLED(ELB_FULL_GRAPHIC_CONTROLLER)
       #error "ELB_FULL_GRAPHIC_CONTROLLER is not supported."

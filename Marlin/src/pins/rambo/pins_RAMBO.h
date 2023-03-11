@@ -41,22 +41,18 @@
  * Rambo pin assignments
  */
 
-#include "env_validate.h"
-
-#ifndef BOARD_INFO_NAME
-  #define BOARD_INFO_NAME "Rambo"
+#if NOT_TARGET(__AVR_ATmega2560__)
+  #error "Oops! Select 'Arduino/Genuino Mega or Mega 2560' in 'Tools > Board.'"
 #endif
+
+#define BOARD_INFO_NAME "Rambo"
 
 //
 // Servos
 //
-#ifndef SERVO0_PIN
-  #define SERVO0_PIN                          22  // Motor header MX1
-#endif
+#define SERVO0_PIN                            22  // Motor header MX1
 #define SERVO1_PIN                            23  // Motor header MX2
-#ifndef SERVO2_PIN
-  #define SERVO2_PIN                          24  // Motor header MX3
-#endif
+#define SERVO2_PIN                            24  // Motor header MX3
 #define SERVO3_PIN                             5  // PWM header pin 5
 
 //
@@ -66,9 +62,7 @@
 #define X_MAX_PIN                             24
 #define Y_MIN_PIN                             11
 #define Y_MAX_PIN                             23
-#ifndef Z_MIN_PIN
-  #define Z_MIN_PIN                           10
-#endif
+#define Z_MIN_PIN                             10
 #define Z_MAX_PIN                             30
 
 //
@@ -141,12 +135,8 @@
 #ifndef FAN_PIN
   #define FAN_PIN                              8
 #endif
-#ifndef FAN1_PIN
-  #define FAN1_PIN                             6
-#endif
-#ifndef FAN2_PIN
-  #define FAN2_PIN                             2
-#endif
+#define FAN1_PIN                               6
+#define FAN2_PIN                               2
 
 //
 // Misc. Functions
@@ -171,10 +161,10 @@
 #define SPINDLE_DIR_PIN                       32
 
 //
-// SPI for MAX Thermocouple
+// SPI for Max6675 or Max31855 Thermocouple
 //
-#ifndef TEMP_0_CS_PIN
-  #define TEMP_0_CS_PIN                       32  // SPINDLE_DIR_PIN / STAT_LED_BLUE_PIN
+#ifndef MAX6675_SS_PIN
+  #define MAX6675_SS_PIN                      32  // SPINDLE_DIR_PIN / STAT_LED_BLUE_PIN
 #endif
 
 //
@@ -186,11 +176,9 @@
 //
 // Průša i3 MK2 Multiplexer Support
 //
-#if HAS_PRUSA_MMU1
-  #define E_MUX0_PIN                          17
-  #define E_MUX1_PIN                          16
-  #define E_MUX2_PIN                          84  // 84 in MK2 Firmware
-#endif
+#define E_MUX0_PIN                            17
+#define E_MUX1_PIN                            16
+#define E_MUX2_PIN                            84  // 84 in MK2 Firmware
 
 //
 // LCD / Controller
@@ -208,7 +196,7 @@
     #define LCD_PINS_D6                       74
     #define LCD_PINS_D7                       75
 
-    #if EITHER(VIKI2, miniVIKI)
+    #if ANY(VIKI2, miniVIKI)
       #define BEEPER_PIN                      44
       // NB: Panucatt's Viki 2.0 wiring diagram (v1.2) indicates that the
       //     beeper/buzzer is connected to pin 33; however, the pin used in the
@@ -216,6 +204,7 @@
 
       #define DOGLCD_A0                       70
       #define DOGLCD_CS                       71
+      #define LCD_SCREEN_ROT_180
 
       #define BTN_EN1                         85
       #define BTN_EN2                         84
@@ -226,19 +215,13 @@
       #define STAT_LED_RED_PIN                22
       #define STAT_LED_BLUE_PIN               32
 
-      #define LCD_SCREEN_ROTATE              180  // 0, 90, 180, 270
-
     #else                                         // !VIKI2 && !miniVIKI
 
       #define BEEPER_PIN                      79  // AUX-4
 
       // AUX-2
-      #ifndef BTN_EN1
-        #define BTN_EN1                       76
-      #endif
-      #ifndef BTN_EN2
-        #define BTN_EN2                       77
-      #endif
+      #define BTN_EN1                         76
+      #define BTN_EN2                         77
       #define BTN_ENC                         78
 
       #define SD_DETECT_PIN                   81
@@ -256,10 +239,10 @@
 
     // Buttons attached to a shift register
     // Not wired yet
-    //#define SHIFT_CLK_PIN                   38
-    //#define SHIFT_LD_PIN                    42
-    //#define SHIFT_OUT_PIN                   40
-    //#define SHIFT_EN_PIN                    17
+    //#define SHIFT_CLK                       38
+    //#define SHIFT_LD                        42
+    //#define SHIFT_OUT                       40
+    //#define SHIFT_EN                        17
 
     #define LCD_PINS_RS                       75
     #define LCD_PINS_ENABLE                   17
@@ -271,10 +254,3 @@
   #endif // !IS_NEWPANEL
 
 #endif // HAS_WIRED_LCD
-
-// Alter timing for graphical display
-#if IS_U8GLIB_ST7920
-  #define BOARD_ST7920_DELAY_1                 0
-  #define BOARD_ST7920_DELAY_2                 0
-  #define BOARD_ST7920_DELAY_3                 0
-#endif

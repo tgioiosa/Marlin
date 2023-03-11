@@ -21,8 +21,9 @@
  */
 #pragma once
 
-#define ALLOW_MEGA644P
-#include "env_validate.h"
+#if NOT_TARGET(__AVR_ATmega644P__, __AVR_ATmega1284P__)
+  #error "Oops! Select 'Sanguino' in 'Tools > Boards' and 'ATmega644P' or 'ATmega1284P' in 'Tools > Processor.'"
+#endif
 
 #define BOARD_INFO_NAME   "Zonestar ZMIB_V2"
 #define BOARD_WEBSITE_URL "www.aliexpress.com/item/32957490744.html"
@@ -48,11 +49,11 @@
  * PIN:   4   Port: B4   SDSS
  * PIN:   4   Port: B4   V1: EXP1_6
  * PIN:   5   Port: B5   AVR_MOSI_PIN
- * .                     SD_MOSI_PIN
+ * .                     MOSI_PIN
  * PIN:   6   Port: B6   AVR_MISO_PIN
- * .                     EXP1_9(SD_MISO_PIN)
+ * .                     EXP1_9(MISO_PIN)
  * PIN:   7   Port: B7   AVR_SCK_PIN
- * .                     EXP1_10(SD_SCK_PIN)
+ * .                     EXP1_10(SCK_PIN)
  * PIN:   8   Port: D0   RXD
  * PIN:   9   Port: D1   TXD
  * PIN:  10   Port: D2   EXP1_8
@@ -146,7 +147,7 @@
 #define FAN1_PIN                              -1
 
 //
-// Filament Runout Sensor
+//filament run out sensor
 //
 #if EITHER(Z6S_ZFAULT, Z6BS_ZFAULT)
   #define FIL_RUNOUT_PIN                      13
@@ -162,42 +163,37 @@
 #endif
 #define SD_DETECT_PIN                         -1
 
-/**             EXP1
- *             ------
- * (MOSI) D5  | 1  2 | D7       (SCK)
- * (CS)   D11 | 3  4 | D10      (DC/D4)
- * (EN2)  D12   5  6 | D4 or D3 (EN/RS)
- * (ENC)  D29 | 7  8 | D2       (EN1)
- *      (GND) | 9 10 | (5V)
- *             ------
- */
-#define EXP1_01_PIN                            5
-#define EXP1_02_PIN                            7
-#define EXP1_03_PIN                           11
-#define EXP1_04_PIN                           10
-#define EXP1_05_PIN                           12
-#ifndef IS_ZMIB_V2
-  #define EXP1_06_PIN                          4  // ZMIB V1
-#else
-  #define EXP1_06_PIN                          3  // ZMIB V2
-#endif
-#define EXP1_07_PIN                           29
-#define EXP1_08_PIN                            2
+/*===================================================
+ * ZMIB Version 1 - EXP1 Connector
+ *   MOSI(D5)  TX1(D11)  ENA(D12)  ENC(D29/A2) 5V
+ *   SCK(D7)   RX1(D10)  SCS(D4)   ENB(D2)     GND
+ *===================================================
+ * ZMIB Version 2 - EXP1 Connector
+ *   MOSI(D5)  TX1(D11)  ENA(D12)  ENC(D29/A2) 5V
+ *   SCK(D7)   RX1(D10)  SCS(D3)   ENB(D2)     GND
+ *===================================================
+ * LCD 128x64
+ *==================================================*/
 
 #if ENABLED(ZONESTAR_12864LCD)
   //
   // LCD 128x64
   //
-  #define LCDSCREEN_NAME "ZONESTAR_12864LCD"
+  #define LCDSCREEN_NAME  "ZONESTAR_12864LCD"
   #define FORCE_SOFT_SPI
-  //#define LCD_SDSS                 EXP1_03_PIN
-  #define LCD_PINS_RS                EXP1_03_PIN  // ST7920_CS_PIN  (LCD module pin 4)
-  #define LCD_PINS_ENABLE            EXP1_06_PIN  // ST7920_DAT_PIN (LCD module pin 5)
-  #define LCD_PINS_D4                EXP1_04_PIN  // ST7920_CLK_PIN (LCD module pin 6)
+  //#define LCD_SDSS                          11
+  #define LCD_PINS_RS                         11  // ST7920_CS_PIN    LCD_PIN_RS    (PIN4 of LCD module)
+  #ifdef IS_ZMIB_V2
+    #define LCD_PINS_ENABLE                    3  // ST7920_DAT_PIN LCD_PIN_R/W   (PIN5 of LCD module)
+  #else
+    #define LCD_PINS_ENABLE                    4  // ST7920_DAT_PIN LCD_PIN_R/W   (PIN5 of LCD module)
+  #endif
+  #define LCD_PINS_D4                         10  // ST7920_CLK_PIN LCD_PIN_ENABLE (PIN6 of LCD module)
 
-  #define BOARD_ST7920_DELAY_1       DELAY_2_NOP
-  #define BOARD_ST7920_DELAY_2       DELAY_2_NOP
-  #define BOARD_ST7920_DELAY_3       DELAY_2_NOP
+  // Alter timing for graphical display
+  #define ST7920_DELAY_1             DELAY_2_NOP
+  #define ST7920_DELAY_2             DELAY_2_NOP
+  #define ST7920_DELAY_3             DELAY_2_NOP
 
 #elif EITHER(ZONESTAR_12864OLED, ZONESTAR_12864OLED_SSD1306)
   //
@@ -205,28 +201,34 @@
   //
   #define LCDSCREEN_NAME "ZONESTAR 12864OLED"
   #define FORCE_SOFT_SPI
-  #define LCD_PINS_RS                EXP1_06_PIN
-  #define LCD_PINS_DC                EXP1_04_PIN
-  #define DOGLCD_CS                  EXP1_03_PIN
-
+  #ifdef IS_ZMIB_V2
+    #define LCD_PINS_RS                        3  // RESET
+  #else
+    #define LCD_PINS_RS                        4  // RESET
+  #endif
+  #define LCD_PINS_DC                         10  // DC
+  #define DOGLCD_CS                           11  // CS
   #if ENABLED(OLED_HW_IIC)
     #error "Oops! can't choose HW IIC for ZMIB board!!"
+  #elif ENABLED(OLED_HW_SPI)
+    // HW SPI
+    #define DOGLCD_A0                LCD_PINS_DC  // A0 = DC
   #else
-    #define DOGLCD_A0                LCD_PINS_DC
-    #if DISABLED(OLED_HW_SPI)
-      #define DOGLCD_MOSI           AVR_MOSI_PIN  // Software SPI
-      #define DOGLCD_SCK             AVR_SCK_PIN
-    #endif
+    // SW SPI
+    #define DOGLCD_A0                LCD_PINS_DC  // A0 = DC
+    #define DOGLCD_MOSI             AVR_MOSI_PIN  // SDA
+    #define DOGLCD_SCK               AVR_SCK_PIN  // SCK
   #endif
+
 #endif
 
 //
 // All the above are also RRDSC with rotary encoder
 //
 #if IS_RRD_SC
-  #define BTN_EN1                    EXP1_08_PIN
-  #define BTN_EN2                    EXP1_05_PIN
-  #define BTN_ENC                    EXP1_07_PIN
+  #define BTN_EN1                              2
+  #define BTN_EN2                             12
+  #define BTN_ENC                             29
   #define BEEPER_PIN                          -1
   #define KILL_PIN                            -1
 #endif

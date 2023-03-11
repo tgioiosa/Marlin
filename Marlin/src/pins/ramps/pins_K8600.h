@@ -19,14 +19,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-#pragma once
 
 /**
  * VERTEX NANO Arduino Mega with RAMPS EFB v1.4 pin assignments.
  */
 
-#if HAS_MULTI_HOTEND
-  #error "K8600 only supports 1 hotend / E stepper."
+#if HOTENDS > 1
+  #error "Only 1 hotend is supported for Vertex Nano."
 #endif
 
 #define BOARD_INFO_NAME      "K8600"
@@ -41,11 +40,6 @@
 #define Z_MIN_PIN                             -1
 
 //
-// Steppers
-//
-#define Z_ENABLE_PIN                          63
-
-//
 // Heaters / Fans
 //
 #define FAN_PIN                                8
@@ -53,13 +47,40 @@
 //
 // Misc. Functions
 //
-#define SDSS                                  25
 #define CASE_LIGHT_PIN                         7
 
 //
 // Other RAMPS pins
 //
+#define IS_RAMPS_EFB                              // Override autodetection. Bed will be undefined.
 #include "pins_RAMPS.h"
+
+//
+// Steppers
+//
+#undef X_STEP_PIN
+#undef X_DIR_PIN
+#undef X_ENABLE_PIN
+#define X_STEP_PIN                            54
+#define X_DIR_PIN                             55
+#define X_ENABLE_PIN                          38
+
+#undef Y_STEP_PIN
+#undef Y_DIR_PIN
+#undef Y_ENABLE_PIN
+#define Y_STEP_PIN                            60
+#define Y_DIR_PIN                             61
+#define Y_ENABLE_PIN                          56
+
+#undef Z_ENABLE_PIN
+#define Z_ENABLE_PIN                          63
+
+#undef E0_STEP_PIN
+#undef E0_DIR_PIN
+#undef E0_ENABLE_PIN
+#define E0_STEP_PIN                           26
+#define E0_DIR_PIN                            28
+#define E0_ENABLE_PIN                         24
 
 //
 // Heaters / Fans
@@ -67,9 +88,15 @@
 #undef HEATER_BED_PIN
 
 //
+// Misc. Functions
+//
+#undef SDSS
+#define SDSS                                  25  // 53
+
+//
 // LCD / Controller
 //
-#if HAS_WIRED_LCD && IS_NEWPANEL
+#if IS_ULTRA_LCD && IS_NEWPANEL
   #undef BEEPER_PIN
 
   #undef LCD_PINS_RS

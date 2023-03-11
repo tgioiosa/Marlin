@@ -22,10 +22,12 @@
 #pragma once
 
 /**
- * Smoothieware Smoothieboard pin assignments
+ * Smoothieboard pin assignments
  */
 
-#include "env_validate.h"
+#if NOT_TARGET(MCU_LPC1769)
+  #error "Oops! Make sure you have the LPC1769 environment selected in your IDE."
+#endif
 
 #define BOARD_INFO_NAME   "Smoothieboard"
 #define BOARD_WEBSITE_URL "smoothieware.org/smoothieboard"
@@ -91,7 +93,7 @@
 //
 // LCD / Controller
 //
-#if EITHER(VIKI2, miniVIKI)
+#if ANY(VIKI2, miniVIKI)
 
   #define BEEPER_PIN                       P1_31
   #define DOGLCD_A0                        P2_11
@@ -122,10 +124,10 @@
    */
   #define SD_DETECT_PIN                    P0_27  // EXP2 Pin 7 (SD_CD, SD_DET)
 
-  #define SD_MISO_PIN                      P0_08  // EXP2 Pin 1 (PB3, SD_MISO)
-  #define SD_SCK_PIN                       P0_07  // EXP2 Pin 2 (SD_SCK)
-  #define SD_SS_PIN                        P0_28  // EXP2 Pin 4 (SD_CSEL, SD_CS)
-  #define SD_MOSI_PIN                      P0_09  // EXP2 Pin 6 (PB2, SD_MOSI)
+  #define MISO_PIN                         P0_08  // EXP2 Pin 1 (PB3, SD_MISO)
+  #define SCK_PIN                          P0_07  // EXP2 Pin 2 (SD_SCK)
+  #define SS_PIN                           P0_28  // EXP2 Pin 4 (SD_CSEL, SD_CS)
+  #define MOSI_PIN                         P0_09  // EXP2 Pin 6 (PB2, SD_MOSI)
 
   /**
    * The Smoothieboard supports the REPRAP_DISCOUNT_FULL_GRAPHIC_SMART_CONTROLLER with either

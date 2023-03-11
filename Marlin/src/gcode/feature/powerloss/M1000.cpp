@@ -27,16 +27,9 @@
 #include "../../gcode.h"
 #include "../../../feature/powerloss.h"
 #include "../../../module/motion.h"
-
 #include "../../../lcd/marlinui.h"
 #if ENABLED(EXTENSIBLE_UI)
   #include "../../../lcd/extui/ui_api.h"
-#elif ENABLED(DWIN_CREALITY_LCD)
-  #include "../../../lcd/e3v2/creality/dwin.h"
-#elif ENABLED(DWIN_LCD_PROUI)
-  #include "../../../lcd/e3v2/proui/dwin.h"
-#elif ENABLED(DWIN_CREALITY_LCD_JYERSUI)
-  #include "../../../lcd/e3v2/jyersui/dwin.h" // Temporary fix until it can be better implemented
 #endif
 
 #define DEBUG_OUT ENABLED(DEBUG_POWER_LOSS_RECOVERY)
@@ -44,17 +37,17 @@
 
 void menu_job_recovery();
 
-inline void plr_error(FSTR_P const prefix) {
+inline void plr_error(PGM_P const prefix) {
   #if ENABLED(DEBUG_POWER_LOSS_RECOVERY)
     DEBUG_ECHO_START();
-    DEBUG_ECHOF(prefix);
+    serialprintPGM(prefix);
     DEBUG_ECHOLNPGM(" Job Recovery Data");
   #else
     UNUSED(prefix);
   #endif
 }
 
-#if HAS_MARLINUI_MENU
+#if HAS_LCD_MENU
   void lcd_power_loss_recovery_cancel();
 #endif
 
@@ -66,21 +59,19 @@ inline void plr_error(FSTR_P const prefix) {
 void GcodeSuite::M1000() {
 
   if (recovery.valid()) {
-    if (parser.seen_test('S')) {
-      #if HAS_MARLINUI_MENU
+    if (parser.seen('S')) {
+      #if HAS_LCD_MENU
         ui.goto_screen(menu_job_recovery);
-      #elif HAS_DWIN_E3V2_BASIC
+      #elif ENABLED(DWIN_CREALITY_LCD)
         recovery.dwin_flag = true;
-      #elif ENABLED(DWIN_CREALITY_LCD_JYERSUI) // Temporary fix until it can be better implemented
-        CrealityDWIN.Popup_Handler(Resume);
       #elif ENABLED(EXTENSIBLE_UI)
         ExtUI::onPowerLossResume();
       #else
         SERIAL_ECHO_MSG("Resume requires LCD.");
       #endif
     }
-    else if (parser.seen_test('C')) {
-      #if HAS_MARLINUI_MENU
+    else if (parser.seen('C')) {
+      #if HAS_LCD_MENU
         lcd_power_loss_recovery_cancel();
       #else
         recovery.cancel();
@@ -91,7 +82,7 @@ void GcodeSuite::M1000() {
       recovery.resume();
   }
   else
-    plr_error(recovery.info.valid_head ? F("No") : F("Invalid"));
+    plr_error(recovery.info.valid_head ? PSTR("No") : PSTR("Invalid"));
 
 }
 

@@ -103,11 +103,13 @@
   };
 
   #if HAS_Z_SERVO_PROBE
-    #define DEPLOY_Z_SERVO() servo[Z_PROBE_SERVO_NR].move(servo_angles[Z_PROBE_SERVO_NR][0])
-    #define STOW_Z_SERVO() servo[Z_PROBE_SERVO_NR].move(servo_angles[Z_PROBE_SERVO_NR][1])
+    #define DEPLOY_Z_SERVO() MOVE_SERVO(Z_PROBE_SERVO_NR, servo_angles[Z_PROBE_SERVO_NR][0])
+    #define STOW_Z_SERVO() MOVE_SERVO(Z_PROBE_SERVO_NR, servo_angles[Z_PROBE_SERVO_NR][1])
   #endif
 
 #endif // HAS_SERVO_ANGLES
 
-extern hal_servo_t servo[NUM_SERVOS];
-void servo_init();
+#define MOVE_SERVO(I, P) servo[I].move(P)
+
+extern HAL_SERVO_LIB servo[NUM_SERVOS];
+extern void servo_init();

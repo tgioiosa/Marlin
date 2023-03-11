@@ -21,7 +21,8 @@
  */
 #pragma once
 
-#include "../inc/MarlinConfig.h"
+#include "../inc/MarlinConfigPre.h"
+#include "../core/types.h"
 
 //#define DEBUG_TOOLCHANGE_MIGRATION_FEATURE
 
@@ -29,34 +30,28 @@
 
   typedef struct {
     #if ENABLED(TOOLCHANGE_FILAMENT_SWAP)
-      float swap_length;            // M217 S
-      float extra_prime;            // M217 E
-      float extra_resume;           // M217 B
-      int16_t prime_speed;          // M217 P
-      int16_t retract_speed;        // M217 R
-      int16_t unretract_speed;      // M217 U
-      uint8_t fan_speed;            // M217 F
-      uint8_t fan_time;             // M217 D
+      float swap_length, extra_prime, extra_resume;
+      int16_t prime_speed, retract_speed, unretract_speed, fan, fan_speed, fan_time;
     #endif
     #if ENABLED(TOOLCHANGE_PARK)
-      bool enable_park;             // M217 W
-      xyz_pos_t change_point;       // M217 X Y I J K
+      bool enable_park;
+      xy_pos_t change_point;
     #endif
-    float z_raise;                  // M217 Z
+    float z_raise;
   } toolchange_settings_t;
 
   extern toolchange_settings_t toolchange_settings;
 
-  #if ENABLED(TOOLCHANGE_FS_PRIME_FIRST_USED)
-    extern bool enable_first_prime; // M217 V
+  #if ENABLED(TOOLCHANGE_FILAMENT_SWAP)
+    extern void tool_change_prime();
   #endif
 
-  #if ENABLED(TOOLCHANGE_FILAMENT_SWAP)
-    void tool_change_prime(); // Prime the currently selected extruder
+  #if ENABLED(TOOLCHANGE_FS_PRIME_FIRST_USED)
+    extern bool enable_first_prime;
   #endif
 
   #if ENABLED(TOOLCHANGE_FS_INIT_BEFORE_SWAP)
-    extern Flags<EXTRUDERS> toolchange_extruder_ready;
+    extern bool toolchange_extruder_ready[EXTRUDERS];
   #endif
 
   #if ENABLED(TOOLCHANGE_MIGRATION_FEATURE)
@@ -85,17 +80,18 @@
 
 #if ENABLED(PARKING_EXTRUDER)
 
-  void pe_solenoid_set_pin_state(const uint8_t extruder_num, const uint8_t state);
+  #if ENABLED(PARKING_EXTRUDER_SOLENOIDS_INVERT)
+    #define PE_MAGNET_ON_STATE !PARKING_EXTRUDER_SOLENOIDS_PINS_ACTIVE
+  #else
+    #define PE_MAGNET_ON_STATE PARKING_EXTRUDER_SOLENOIDS_PINS_ACTIVE
+  #endif
 
-  #define PE_MAGNET_ON_STATE TERN_(PARKING_EXTRUDER_SOLENOIDS_INVERT, !)PARKING_EXTRUDER_SOLENOIDS_PINS_ACTIVE
-  inline void pe_solenoid_magnet_on(const uint8_t extruder_num)  { pe_solenoid_set_pin_state(extruder_num,  PE_MAGNET_ON_STATE); }
-  inline void pe_solenoid_magnet_off(const uint8_t extruder_num) { pe_solenoid_set_pin_state(extruder_num, !PE_MAGNET_ON_STATE); }
+  void pe_set_solenoid(const uint8_t extruder_num, const uint8_t state);
+
+  inline void pe_activate_solenoid(const uint8_t extruder_num) { pe_set_solenoid(extruder_num, PE_MAGNET_ON_STATE); }
+  inline void pe_deactivate_solenoid(const uint8_t extruder_num) { pe_set_solenoid(extruder_num, !PE_MAGNET_ON_STATE); }
 
   void pe_solenoid_init();
-
-  extern bool extruder_parked;
-  inline void parking_extruder_set_parked(const bool parked) { extruder_parked = parked; }
-  bool parking_extruder_unpark_after_homing(const uint8_t final_tool, bool homed_towards_final_tool);
 
 #elif ENABLED(MAGNETIC_PARKING_EXTRUDER)
 
@@ -114,17 +110,17 @@
 
 #endif
 
-#if ENABLED(ELECTROMAGNETIC_SWITCHING_TOOLHEAD)
-  void est_init();
-#elif ENABLED(SWITCHING_TOOLHEAD)
-  void swt_init();
+#if ENABLED(SINGLENOZZLE_STANDBY_TEMP)
+  extern uint16_t singlenozzle_temp[EXTRUDERS];
 #endif
 
-#if ENABLED(TOOL_SENSOR)
-  uint8_t check_tool_sensor_stats(const uint8_t active_tool, const bool kill_on_error=false, const bool disable=false);
-#else
-  inline uint8_t check_tool_sensor_stats(const uint8_t, const bool=false, const bool=false) { return 0; }
+#if BOTH(HAS_FAN, SINGLENOZZLE_STANDBY_FAN)
+  extern uint8_t singlenozzle_fan_speed[EXTRUDERS];
 #endif
+
+TERN_(ELECTROMAGNETIC_SWITCHING_TOOLHEAD, void est_init());
+
+TERN_(SWITCHING_TOOLHEAD, void swt_init());
 
 /**
  * Perform a tool-change, which may result in moving the
