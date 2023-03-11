@@ -20,6 +20,16 @@
  *
  */
 
+
+//TG 5/2/22 Added this to suppress "warning: 'void* memset(void*, int, size_t)' clearing an object of non-trivial type
+//                                 'class SdFile'; use assignment or value-initialization instead [-Wclass-memaccess]
+// on line 172 ZERO(workDirParents)
+// The 'GCC diagnostic ignored pragma' makes this effective ONLY for this source file. If the "-Wclass-memaccess" were
+// added in platformio.ini it would affect all files in the project, and this particular "-Wclass-memaccess" can only
+// be used with .cpp files, not .c files (there are still some .c files in Marlin and this would cause many more errors).
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
+
+
 #include "../inc/MarlinConfig.h"
 
 #if ENABLED(SDSUPPORT)

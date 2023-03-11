@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -673,6 +673,7 @@
   #define _CUTTER_POWER_PWM255  1
   #define _CUTTER_POWER_PERCENT 2
   #define _CUTTER_POWER_RPM     3
+  #define _CUTTER_POWER_SERVO   4   //TG 9/3/21 added this
   #define _CUTTER_POWER(V)      _CAT(_CUTTER_POWER_, V)
   #define CUTTER_UNIT_IS(V)    (_CUTTER_POWER(CUTTER_POWER_UNIT) == _CUTTER_POWER(V))
 #endif
@@ -1006,7 +1007,7 @@
 #endif
 
 // AVR are (usually) too limited in resources to store the configuration into the binary
-#if !defined(FORCE_CONFIG_EMBED) && (defined(__AVR__) || DISABLED(SDSUPPORT) || EITHER(SDCARD_READONLY, DISABLE_M503))
+#if ENABLED(CONFIGURATION_EMBEDDING) && !defined(FORCE_CONFIG_EMBED) && (defined(__AVR__) || DISABLED(SDSUPPORT) || EITHER(SDCARD_READONLY, DISABLE_M503))
   #undef CONFIGURATION_EMBEDDING
   #define CANNOT_EMBED_CONFIGURATION defined(__AVR__)
 #endif

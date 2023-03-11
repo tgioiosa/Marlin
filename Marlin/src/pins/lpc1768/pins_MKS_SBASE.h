@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -34,18 +34,18 @@
   #define BOARD_WEBSITE_URL "github.com/makerbase-mks/MKS-SBASE"
 #endif
 
-#define LED_PIN                            P1_18  // Used as a status indicator
-#define LED2_PIN                           P1_19
-#define LED3_PIN                           P1_20
-#define LED4_PIN                           P1_21
+#define LED_PIN                            P1_18  // D1 Used as a status indicator
+#define LED2_PIN                           P1_19  // D2
+#define LED3_PIN                           P1_20  // D3
+#define LED4_PIN                           P1_21  // D4
 
 //
 // Servos
 //
-#define SERVO0_PIN                         P1_23  // J8-3 (low jitter)
-#define SERVO1_PIN                         P2_12  // J8-4
-#define SERVO2_PIN                         P2_11  // J8-5
-#define SERVO3_PIN                         P4_28  // J8-6
+#define SERVO0_PIN                         P1_23  // J8-3 (low jitter) PWM1[4]
+#define SERVO1_PIN                         P2_12  // J8-4 not PWM
+#define SERVO2_PIN                         P2_11  // J8-5 not PWM
+#define SERVO3_PIN                         P4_28  // J8-6 not PWM
 
 //
 // Limit Switches - Not Interrupt Capable
@@ -344,8 +344,10 @@
 #endif
 
 // UNUSED
-//#define PIN_P0_02                        P0_02  // AUX1 (Interrupt Capable/ADC/Serial Port 0)
-//#define PIN_P0_03                        P0_03  // AUX1 (Interrupt Capable/ADC/Serial Port 0)
+#define PIN_P0_27                          P0_27  // EXP2/Onboard SD
+#define PIN_P0_28                          P0_28  // EXP2
+#define PIN_P0_02                        P0_02  // AUX1 (Interrupt Capable/ADC/Serial Port 0)
+#define PIN_P0_03                        P0_03  // AUX1 (Interrupt Capable/ADC/Serial Port 0)
 
 /**
  *  PWMs

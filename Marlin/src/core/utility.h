@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -59,6 +59,9 @@ void safe_delay(millis_t ms);           // Delay ensuring that temperatures are 
   #define log_machine_info() NOOP
 #endif
 
+//TG this class saves the original val_ to ref_ , then sets ref_ to temp_val
+// the class destroys when it goes out of scope (i.e. function that created it ends)
+// upon being destroyed, it restores the ref_ to it's original value it had
 template<typename T>
 class restorer {
   T& ref_;

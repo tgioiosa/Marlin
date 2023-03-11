@@ -1,0 +1,8 @@
+SOFT_PWM option uses LPC_TIM3 and can emulate a PWM on any pin.
+If not using SOFT_PWM use TIM3 capture in on P0_23 TH1 or P0_24 TH2
+If SOFT_PWM is needed, swap LPC_TIM2 for LPC_TIM3, it looks like
+LPC_TIM2 is not being used, so that would free up LPC_TIM3 to access
+these avaiable pins for an RPM input sense. LPC_TIM2 pins are already
+being used by other functions on the SGEN board.
+
+HARD_PWM uses LPC_PWM1

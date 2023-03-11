@@ -7,10 +7,15 @@
 
 <img align="right" width=175 src="buildroot/share/pixmaps/logo/marlin-250.png" />
 
+### This is my customized fork of Marlin 2.0 for use as a CNC controller on an MPCNC setup. This 
+### version is highly customized to unique hardware and will most likely NOT work for your setup. 
+### Fork or Clone at your own risk!
+
 Additional documentation can be found at the [Marlin Home Page](https://marlinfw.org/).
 Please test this firmware and let us know if it misbehaves in any way. Volunteers are standing by!
 
 ## Marlin 2.0
+
 
 Marlin 2.0 takes this popular RepRap firmware to the next level by adding support for much faster 32-bit and ARM-based boards while improving support for 8-bit AVR boards. Read about Marlin's decision to use a "Hardware Abstraction Layer" below.
 

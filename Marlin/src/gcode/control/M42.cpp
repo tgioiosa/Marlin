@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -21,6 +21,8 @@
  */
 
 #include "../../inc/MarlinConfig.h"
+
+#include <pwm.h>    //TG 6/27/21 needed for TG-modified code below
 
 #if ENABLED(DIRECT_PIN_CONTROL)
 
@@ -117,13 +119,52 @@ void GcodeSuite::M42() {
     SERIAL_ECHOLNPGM("?Cannot write to INPUT");
     return;
   }
+  //TG - 10/7/21 this is old version of below
+  //pinMode(pin, OUTPUT);
+  //extDigitalWrite(pin, pin_status);
+  //analogWrite(pin, pin_status);
+  
+  //***************************************************************************************************************
+  //TG 6/27/21 Modified the original code (3 lines above) with new code. Added new parameter 'A' to specify
+  //if pin should be treated as analog PWM, example: "M42 P123 S127 A1" where A1 specifies analog PWM. If the
+  //'A1' is left off, pin will default to GPIO digital output pin. The '1' after 'A' can be any number, just
+  //needs to be at least one digit. In PWM mode, S=0 to 255. In Digital mode S=0 is OFF, S=1 to 255 is ON.
+  //The analog mode can write to Hardware or Software PWM. If the pin is not a Hardware PWM pin on the LPC,
+  //then the Software PWM will be used. Both PWM frequencies are 50Hz by default (in pwm.h), but the Hardware
+  //PWM(LPC_PWM1) freq is set higher to (SPINDLE_LASER_FREQUENCY) if SPINDLE_FEATURE or LASER_FEATURE is enabled.
+  //To change Software PWM frequency, make a call to SoftwarePWM::set_frequency(frequency) or change pwm.h.
+  if (parser.seenval('A'))    
+  {                           
+    LPC176x::pwm_attach_pin(pin, pin_status); // re-attach pin as PWM (when pin was set to GPIO by extDigitalWrite)
+    analogWrite(pin, pin_status);             // treat as PWM (hardware or software)
+  }
+  else
+  {  
+    //if (LPC176x::HardwarePWM::active(pin) || LPC176x::SoftwarePWM::active(pin))
+    LPC176x::pwm_detach_pin(pin);             // if previously mapped as a PWM pin, detach it first 
+    // An OUTPUT_OPEN_DRAIN should not be changed to normal OUTPUT (STM32)
+    #ifndef OUTPUT_OPEN_DRAIN
+      pinMode(pin, OUTPUT);
+    #endif
+    extDigitalWrite(pin, pin_status);         // treat as GPIO pin
+  }
 
-  // An OUTPUT_OPEN_DRAIN should not be changed to normal OUTPUT (STM32)
-  // Use M42 Px M1/5 S0/1 to set the output type and then set value
-  #ifndef OUTPUT_OPEN_DRAIN
-    pinMode(pin, OUTPUT);
-  #endif
-  extDigitalWrite(pin, pin_status);
+  //TG 9/25/22 - added this to update TFT whenever Marlin sets vacuum on or off during an SD print or Remote Terminal
+  // M42 command. Otherwise without this, the TFT would only know the vacuum state if changed on the TFT screen itself.
+  if(pin == VACUUM_ENA_PIN)
+  {
+    SERIAL_ECHOPGM("M7985 S", pin_status);    // signal the TFT that vacuum changed state
+    SERIAL_EOL();
+  }
+ 
+  //TG 6/27/21 this line was useful for debugging to see the Function mode of the pin
+  //LPC176x::Function pf = (LPC176x::Function)LPC176x::pin_type{pin}.function();
+
+  //TG 6/26/21 ALSO ! Be sure to use modified versions of SoftwarePWM.cpp and SoftwarePWM.h
+  //from "C:\Users\tony\.platformio\packages\framework-arduino-lpc176x\system\lpc176x\"
+  //They are modified to use Timer2 for SoftPWM (instead of Timer3 as in the original files) !
+  //Timer3 has been reassigned for use as RPM sensor capture.
+  //***************************************************************************************************************
 
   #ifdef ARDUINO_ARCH_STM32
     // A simple I/O will be set to 0 by set_pwm_duty()

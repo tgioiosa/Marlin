@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -1100,6 +1100,11 @@
 #if PIN_EXISTS(SPINDLE_LASER_PWM)
   REPORT_NAME_DIGITAL(__LINE__, SPINDLE_LASER_PWM_PIN)
 #endif
+//TG 6/27/21 added this to list of assigned pins
+#if PIN_EXISTS(VACUUM_ENA)
+  REPORT_NAME_DIGITAL(__LINE__, VACUUM_ENA_PIN)
+#endif
+//TG 6/27/21 end of addition
 #if PIN_EXISTS(SR_CLK)
   REPORT_NAME_DIGITAL(__LINE__, SR_CLK_PIN)
 #endif

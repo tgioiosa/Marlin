@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -138,7 +138,7 @@
 #endif
 
 #if ENABLED(EXPERIMENTAL_I2CBUS)
-  #include "feature/twibus.h"
+  #include <src/module/rpmSensor/TG_I2CSlave.h>
 #endif
 
 #if ENABLED(I2C_POSITION_ENCODERS)
@@ -151,6 +151,8 @@
 
 #if HAS_CUTTER
   #include "feature/spindle_laser.h"
+  //#include "module/rpmSensor/rpmTimer.h"        //TG 8/30/22 removed, not used for AVRTriac system
+  #include <src/module/TG_I2C/TG_I2CSlave.h>      //TG 5/12/22 added for I2C comm with AVR128DB28 Triac controller
 #endif
 
 #if ENABLED(SDSUPPORT)
@@ -248,13 +250,10 @@
   #include "feature/power.h"
 #endif
 
-#if ENABLED(EASYTHREED_UI)
-  #include "feature/easythreed_ui.h"
-#endif
-
 PGMSTR(M112_KILL_STR, "M112 Shutdown");
 
 MarlinState marlin_state = MF_INITIALIZING;
+uint16_t _loopcount = 0;    //TG used to blink LED2 as running main loop indicator
 
 // For M109 and M190, this flag may be cleared (by M108) to exit the wait loop
 bool wait_for_heatup = true;
@@ -275,7 +274,7 @@ bool wait_for_heatup = true;
 
 #endif
 
-/**
+ /**
  * ***************************************************************************
  * ******************************** FUNCTIONS ********************************
  * ***************************************************************************
@@ -725,7 +724,7 @@ inline void manage_inactivity(const bool no_stepper_sleep=false) {
   // Limit check_axes_activity frequency to 10Hz
   static millis_t next_check_axes_ms = 0;
   if (ELAPSED(ms, next_check_axes_ms)) {
-    planner.check_axes_activity();
+    planner.check_axes_activity();  //TG this call executes planner and FAN is set on/off in planner->block
     next_check_axes_ms = ms + 100UL;
   }
 
@@ -771,7 +770,7 @@ void idle(bool no_stepper_sleep/*=false*/) {
   // Core Marlin activities
   manage_inactivity(no_stepper_sleep);
 
-  // Manage Heaters (and Watchdog)
+  // Manage Heaters (and Watchdog)  //TG 2/22/21 may be able to eventually remove this?
   thermalManager.manage_heater();
 
   // Max7219 heartbeat, animation, etc
@@ -1115,7 +1114,9 @@ void setup() {
   #ifdef BOARD_PREINIT
     BOARD_PREINIT(); // Low-level init (before serial init)
   #endif
-
+  SET_DIR_OUTPUT(P4_28);  //TG for testing
+  SET_DIR_OUTPUT(P2_12);  //TG for testing
+  OUT_WRITE(P2_12,0);
   tmc_standby_setup();  // TMC Low Power Standby pins must be set early or they're not usable
 
   // Check startup - does nothing if bootloader sets MCUSR to 0
@@ -1133,6 +1134,18 @@ void setup() {
     #define SETUP_LOG(...) NOOP
   #endif
   #define SETUP_RUN(C) do{ SETUP_LOG(STRINGIFY(C)); C; }while(0)
+
+  #if HAS_CUTTER  //TG 2/15/21 moved this up here to insure spindle is off early in startup
+    //SETUP_RUN(RPM_timer_init(MF_TIMER_RPM));    //TG removed 5/12/22, RPM handled by AVR Triac controller via I2C now
+    SETUP_RUN(cutter.init());
+  #endif
+
+  #if ENABLED(TG_I2C_SUPPORT) && I2C_SLAVE_ADDRESS > 0
+    SETUP_RUN(I2C_begin(I2C_SLAVE_MODE, I2C_SLAVE_ADDRESS, I2C_CLOCK, true)); //TG added 5/12/22 to support AVR Triac controller via I2C
+  #endif
+  #if ENABLED(TG_I2C_SUPPORT) && I2C_SLAVE_ADDRESS == 0
+    SETUP_RUN(I2C_begin(I2C_MASTER_MODE, I2C_SLAVE_ADDRESS,I2C_CLOCK, true)); //TG added 5/12/22, not supported yet
+  #endif
 
   MYSERIAL1.begin(BAUDRATE);
   millis_t serial_connect_timeout = millis() + 1000UL;
@@ -1357,9 +1370,9 @@ void setup() {
     OUT_WRITE(PHOTOGRAPH_PIN, LOW);
   #endif
 
-  #if HAS_CUTTER
-    SETUP_RUN(cutter.init());
-  #endif
+  //#if HAS_CUTTER  //TG 2/15/21 moved up
+  //  SETUP_RUN(cutter.init());
+  //#endif
 
   #if ENABLED(COOLANT_MIST)
     OUT_WRITE(COOLANT_MIST_PIN, COOLANT_MIST_INVERT);   // Init Mist Coolant OFF
@@ -1508,8 +1521,10 @@ void setup() {
 
   #if ENABLED(EXPERIMENTAL_I2CBUS) && I2C_SLAVE_ADDRESS > 0
     SETUP_LOG("i2c...");
-    i2c.onReceive(i2c_on_receive);
-    i2c.onRequest(i2c_on_request);
+    //Wire.onReceive(slaveReceive);
+    //i2c.onReceive(i2c_on_receive);
+    //i2c.onRequest(i2c_on_request);
+    //Wire.onRequest(slaveRequest);
   #endif
 
   #if DO_SWITCH_EXTRUDER
@@ -1537,7 +1552,8 @@ void setup() {
     SETUP_RUN(est_init());
   #endif
 
-  #if ENABLED(USE_WATCHDOG)
+  //TG 1/30/21 disable watchdog if DEBUG defined in platformio.ini build_flags
+  #if ENABLED(USE_WATCHDOG) && DISABLED(DEBUG)
     SETUP_RUN(watchdog_init());       // Reinit watchdog after HAL_get_reset_source call
   #endif
 
@@ -1622,6 +1638,10 @@ void setup() {
   marlin_state = MF_RUNNING;
 
   SETUP_LOG("setup() completed.");
+  #if PIN_EXISTS(LED)  //TG 2/2/21 added to indicate setup complete
+    WRITE(LED_PIN,1);
+  #endif
+
 }
 
 /**
@@ -1638,6 +1658,7 @@ void setup() {
  *    as long as idle() or manage_inactivity() are being called.
  */
 void loop() {
+  uint8_t _bp = 0;
   do {
     idle();
 
@@ -1651,6 +1672,10 @@ void loop() {
     endstops.event_handler();
 
     TERN_(HAS_TFT_LVGL_UI, printer_state_polling());
+
+    #if PIN_EXISTS(LED2)  //TG 2/2/21 added to indicate idle loop activity, approx 1 sec ON 1 sec OFF
+      if (_loopcount++ == 0) {TOGGLE(LED2_PIN);}  // toggle LED when 16-bit _loopcount overflows, period=65535 counts
+    #endif
 
   } while (ENABLED(__AVR__)); // Loop forever on slower (AVR) boards
 }

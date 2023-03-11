@@ -23,8 +23,8 @@
 
 #include "../../inc/MarlinConfig.h"
 #include "../shared/Delay.h"
-#include "../../../gcode/parser.h"
-
+//#include "../../../gcode/parser.h"
+#include "../../gcode/parser.h"
 #if ENABLED(USE_WATCHDOG)
   #include "watchdog.h"
 #endif

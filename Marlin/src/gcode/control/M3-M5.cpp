@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -25,8 +25,11 @@
 #if HAS_CUTTER
 
 #include "../gcode.h"
+#include "../../module/temperature.h"           //TG 9/21/21 added
 #include "../../feature/spindle_laser.h"
 #include "../../module/stepper.h"
+#include "../../module/TG_I2C/TG_I2CSlave.h"    //TG 5/12/22 added for I2C comm with AVR Triac Controller board.
+//#include "../../module/rpmSensor/RPMTimer.h"  //TG 8/31/21 added, removed 5/12/22 - no longer needed with AVR Triac Controller board.
 
 /**
  * Laser:
@@ -65,23 +68,32 @@
  *
  *  PWM duty cycle goes from 0 (off) to 255 (always on).
  */
-void GcodeSuite::M3_M4(const bool is_M4) {
+
+//***************************************************************************************************************************
+//TG ***** NOTE: With the new AVR Triac Controller board, the actual spindle speed is controlled there, and Marlin PWM pin P1_23
+// is no longer used for speed control. The following code needs only to read the speed from M3 and M4 commands and forward
+// it to the AVR Triac Controller via TARGET_RPM variable over I2C comm.
+//***************************************************************************************************************************
+
+void GcodeSuite::M3_M4(const bool is_M4) {      //TG set cutter.unitPower from 'S' parameter or default SPEED_POWER_STARTUP
   #if EITHER(SPINDLE_LASER_USE_PWM, SPINDLE_SERVO)
-    auto get_s_power = [] {
-      if (parser.seenval('S')) {
-        const float spwr = parser.value_float();
-        #if ENABLED(SPINDLE_SERVO)
-          cutter.unitPower = spwr;
-        #else
-          cutter.unitPower = TERN(SPINDLE_LASER_USE_PWM,
-                                cutter.power_to_range(cutter_power_t(round(spwr))),
-                                spwr > 0 ? 255 : 0);
-        #endif
-      }
-      else
-        cutter.unitPower = cutter.cpwr_to_upwr(SPEED_POWER_STARTUP);
-      return cutter.unitPower;
-    };
+  //WRITE(P4_28,1);
+  auto get_s_power = [] {       //TG this lambda function inside a function gets the SXXXXX value, i.e. 7000 for S7000, and sets unitPower
+    if (parser.seenval('S')) {
+      const float spwr = parser.value_float();  //TG spwr is the RPM or PWM or % Target Value from the LCD display
+            
+      #if ENABLED(SPINDLE_SERVO)
+        cutter.unitPower = spwr;
+      #else
+        cutter.unitPower = TERN(SPINDLE_LASER_USE_PWM,                              //TG if PWM in use then
+                              cutter.power_to_range(cutter_power_t(round(spwr))),   //set unitPower to range-limited spwr in RPM or PWM or %
+                              spwr > 0 ? SPINDLE_LASER_PWM_RES : 0);                //else zero or full power - 9/30/21 changed max OCR, was 255
+      #endif
+    }
+    else    // if no S value given, convert SPEED_POWER_STARTUP to unitPower
+        cutter.unitPower = cutter.cpwr_to_upwr(SPEED_POWER_STARTUP);                //TG default to SPEED_POWER_STARTUP if no 'S' parameter
+    return cutter.unitPower;
+  };
   #endif
 
   #if ENABLED(LASER_POWER_INLINE)
@@ -107,19 +119,27 @@ void GcodeSuite::M3_M4(const bool is_M4) {
   planner.synchronize();   // Wait for previous movement commands (G0/G0/G2/G3) to complete before changing power
   cutter.set_reverse(is_M4);
 
-  #if ENABLED(SPINDLE_LASER_USE_PWM)
+  #if ENABLED(SPINDLE_LASER_USE_PWM)                                      
     if (parser.seenval('O')) {
-      cutter.unitPower = cutter.power_to_range(parser.value_byte(), 0);
-      cutter.ocr_set_power(cutter.unitPower); // The OCR is a value from 0 to 255 (uint8_t)
+      cutter.unitPower = cutter.power_to_range(parser.value_byte(), 0);   //TG get value after 'O' for OCR (PWM) power
+      cutter.set_hires_ocr_power(cutter.unitPower);                       //TG Set OCR to value from 0 to SPEED_POWER_STARTUP (uint16_t)
     }
-    else
-      cutter.set_power(cutter.upower_to_ocr(get_s_power()));
+    else{
+      cutter.set_power(cutter.upower_to_ocr(get_s_power()));    //TG get 'S' power (or default speed if no 'S') to OCR power, then set it at PWM
+    }
   #elif ENABLED(SPINDLE_SERVO)
-    cutter.set_power(get_s_power());
+    if (cutter.spindle_use_pid == false)  //TG 9/15/21 if using classic PID algorithm in RPMTimer.cpp, it will set the power, so skip below
+      cutter.set_power(get_s_power());
   #else
     cutter.set_enabled(true);
   #endif
-  cutter.menuPower = cutter.unitPower;
+  
+  cutter.menuPower = cutter.unitPower;                  // update menuPower for display, unitPower is RPM or PWM or % 
+  SpindleLaser::isReady = true;
+  
+  TARGET_RPM = cutter.menuPower;                        //TG added 5/12/22 to update TARGET_RPM for I2C code to send to AVR CNC Controller
+  Temperature::set_spindle_speed(0,cutter.unitPower);   //TG added 9/21/21 to set value in spindle_speed array
+  //WRITE(P4_28,0);
 }
 
 /**
@@ -135,8 +155,12 @@ void GcodeSuite::M5() {
     cutter.inline_disable(); // Prevent future blocks re-setting the power
   #endif
   planner.synchronize();
-  cutter.set_enabled(false);
-  cutter.menuPower = cutter.unitPower;
+  cutter.set_enabled(false);                    // also sets power to zero (but not unitPower!)
+  
+  cutter.unitPower = 0;                         //TG make sure to zero the unitPower, otherwise it holds last target
+  cutter.menuPower = 0;                         // update menuPower for display, unitPower is RPM or PWM or %
+  TARGET_RPM = 0;                               //TG added 5/12/22 to update TARGET_RPM for I2C code to send to AVR CNC Controller
+  Temperature::set_spindle_speed(0,0);          //TG - 9/24/21 added
 }
 
 #endif // HAS_CUTTER

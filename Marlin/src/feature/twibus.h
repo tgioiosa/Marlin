@@ -28,7 +28,7 @@
 // Print debug messages with M111 S2 (Uses 236 bytes of PROGMEM)
 //#define DEBUG_TWIBUS
 
-typedef void (*twiReceiveFunc_t)(int bytes);
+typedef void (*twiReceiveFunc_t)(uint8_t bytes);
 typedef void (*twiRequestFunc_t)();
 
 /**
@@ -244,11 +244,14 @@ class TWIBus {
       static void debug(FSTR_P const func, char c);
       static void debug(FSTR_P const func, char adr[]);
     #else
-      static inline void debug(FSTR_P const, uint32_t) {}
-      static inline void debug(FSTR_P const, char) {}
-      static inline void debug(FSTR_P const, char[]) {}
+      static void debug(FSTR_P const, uint32_t) {}
+      static void debug(FSTR_P const, char) {}
+      static void debug(FSTR_P const, char[]) {}
     #endif
-    static inline void debug(FSTR_P const func, uint8_t v) { debug(func, (uint32_t)v); }
+    static void debug(FSTR_P const func, uint8_t v) { debug(func, (uint32_t)v); }
+
+
+
 };
 
 extern TWIBus i2c;

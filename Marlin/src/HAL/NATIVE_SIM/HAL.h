@@ -82,7 +82,7 @@ extern MSerialT serial_stream_3;
   #endif
 #endif
 
-#ifdef MMU2_SERIAL_PORT
+#ifdef c
   #if WITHIN(MMU2_SERIAL_PORT, 0, 3)
     #define MMU2_SERIAL MSERIAL(MMU2_SERIAL_PORT)
   #else

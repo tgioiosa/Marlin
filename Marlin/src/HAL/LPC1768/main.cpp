@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -48,7 +48,7 @@ void SysTick_Callback() { disk_timerproc(); }
 
 TERN_(POSTMORTEM_DEBUGGING, extern void install_min_serial());
 
-void HAL_init() {
+void HAL_init() {  //TG initialize Hardware Abstraction Layer items
 
   // Init LEDs
   #if PIN_EXISTS(LED)

@@ -95,8 +95,8 @@ void GcodeSuite::G92() {
           if (!NEAR_ZERO(d)) {
             #if HAS_POSITION_SHIFT && !IS_SCARA                       // When using workspaces...
               if (TERN1(HAS_EXTRUDERS, i != E_AXIS)) {
-                position_shift[i] += d;                               // ...most axes offset the workspace...
-                update_workspace_offset((AxisEnum)i);
+                position_shift[i] += d;                               // set position shift[] from current to target (offsets the workspace)
+                update_workspace_offset((AxisEnum)i);                 // sets workspace_offset[axis] = home_offset[axis] + position_shift[axis]; 
               }
               else {
                 #if HAS_EXTRUDERS
@@ -121,7 +121,7 @@ void GcodeSuite::G92() {
   #if ENABLED(CNC_COORDINATE_SYSTEMS)
     // Apply Workspace Offset to the active coordinate system
     if (WITHIN(active_coordinate_system, 0, MAX_COORDINATE_SYSTEMS - 1))
-      coordinate_system[active_coordinate_system] = position_shift;
+      coordinate_system[active_coordinate_system] = position_shift;   // update the global WCS array [0-8] for G54,55,56,57,58,59
   #endif
 
   if (sync_XYZE) sync_plan_position();

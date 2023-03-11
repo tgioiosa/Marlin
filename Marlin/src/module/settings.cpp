@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -36,7 +36,7 @@
  */
 
 // Change EEPROM version if the structure changes
-#define EEPROM_VERSION "V86"
+#define EEPROM_VERSION "V86"  //TG - 10/7/21 added a setting at end for PID state
 #define EEPROM_OFFSET 100
 
 // Check the integrity of data offsets.
@@ -164,6 +164,10 @@
 #if ENABLED(DGUS_LCD_UI_MKS)
   #include "../lcd/extui/dgus/DGUSScreenHandler.h"
   #include "../lcd/extui/dgus/DGUSDisplayDef.h"
+#endif
+
+#if ENABLED(SPINDLE_FEATURE)
+  #include "../feature/spindle_laser.h"      //TG - 9/27/21 added
 #endif
 
 #pragma pack(push, 1) // No padding between variables
@@ -535,6 +539,14 @@ typedef struct SettingsDataStruct {
 
   #if HAS_MULTI_LANGUAGE
     uint8_t ui_language;                                // M414 S
+  #endif
+
+  //
+  //TG - 9/27/21 additional settings to define a variable for EEPROM read/write
+  //
+  //TG just serves to declare variable type and size for storage in struct, not really used
+  #if ENABLED(SPINDLE_FEATURE)  
+  //  bool use_pid;               //TG 7/25/22 removed, PID now handled in AVRTriac control board                                               
   #endif
 
 } SettingsData;
@@ -1027,7 +1039,7 @@ void MarlinSettings::postprocess() {
       _FIELD_TEST(bedPID);
 
       const PID_t bed_pid = {
-        #if DISABLED(PIDTEMPBED)
+        #if DISABLED(PIDTEMPBED, PIDSPINDLE_USE_PIDTEMPBED )  //TG 9/21/21 was #if was DISABLED(PIDTEMPBED), added PIDSPINDLE_USE_PIDTEMPBED
           NAN, NAN, NAN
         #else
           // Store the unscaled PID values
@@ -1519,6 +1531,15 @@ void MarlinSettings::postprocess() {
       EEPROM_WRITE(ui.language);
     #endif
 
+
+    //
+     //TG - 9/27/21 additional settings to store to EEPROM after all standard settings above
+    //
+    #if ENABLED(SPINDLE_FEATURE)                //TG 7/25/22 removed, cutter.spindle_use_pid is now PIDFLAG and stored in AVR EEPROM   
+      //EEPROM_WRITE(cutter.spindle_use_pid);   //TG - 9/27/21 store directly from cutter struct (doesn't use pid_control defined in SettingsDataStruct)
+    #endif              
+
+
     //
     // Report final CRC and Data Size
     //
@@ -1584,7 +1605,7 @@ void MarlinSettings::postprocess() {
       #if ENABLED(EEPROM_INIT_NOW)
         uint32_t stored_hash;
         EEPROM_READ_ALWAYS(stored_hash);
-        if (stored_hash != build_hash) { EEPROM_FINISH(); return true; }
+        if (stored_hash != build_hash) { EEPROM_FINISH(); return false; }
       #endif
 
       uint16_t stored_crc;
@@ -1934,7 +1955,7 @@ void MarlinSettings::postprocess() {
       {
         PID_t pid;
         EEPROM_READ(pid);
-        #if ENABLED(PIDTEMPBED)
+        #if EITHER(PIDTEMPBED, PIDSPINDLE_USE_PIDTEMPBED)   //TG 9/21/21 was #if ENABLED(PIDTEMPBED), added PIDSPINDLE_USE_PIDTEMPBED
           if (!validating && !isnan(pid.Kp)) {
             // Scale PID values since EEPROM values are unscaled
             thermalManager.temp_bed.pid.Kp = pid.Kp;
@@ -2463,6 +2484,15 @@ void MarlinSettings::postprocess() {
       }
       #endif
 
+
+      //
+      //TG - 9/27/21 additional settings to read from EEPROM
+      //
+      #if ENABLED(SPINDLE_FEATURE)  
+//        EEPROM_READ(cutter.spindle_use_pid);    //TG removed 7/22/22, PIDFLAG flag will be stored in AVR Control board
+      #endif
+
+
       //
       // Validate Final Size and CRC
       //
@@ -2712,13 +2742,13 @@ void MarlinSettings::reset() {
     #if HAS_Z_AXIS && !defined(DEFAULT_ZJERK)
       #define DEFAULT_ZJERK 0
     #endif
-    #if LINEAR_AXES >= 4 && !defined(DEFAULT_IJERK)
+    #if HAS_I_AXIS && !defined(DEFAULT_IJERK)
       #define DEFAULT_IJERK 0
     #endif
-    #if LINEAR_AXES >= 5 && !defined(DEFAULT_JJERK)
+    #if HAS_J_AXIS && !defined(DEFAULT_JJERK)
       #define DEFAULT_JJERK 0
     #endif
-    #if LINEAR_AXES >= 6 && !defined(DEFAULT_KJERK)
+    #if HAS_K_AXIS && !defined(DEFAULT_KJERK)
       #define DEFAULT_KJERK 0
     #endif
     planner.max_jerk.set(
@@ -3001,7 +3031,7 @@ void MarlinSettings::reset() {
   // Heated Bed PID
   //
 
-  #if ENABLED(PIDTEMPBED)
+  #if EITHER(PIDTEMPBED, PIDSPINDLE_USE_PIDTEMPBED)   //TG 9/21/21 was #if ENABLED(PIDTEMPBED), added PIDSPINDLE_USE_PIDTEMPBED
     thermalManager.temp_bed.pid.Kp = DEFAULT_bedKp;
     thermalManager.temp_bed.pid.Ki = scalePID_i(DEFAULT_bedKi);
     thermalManager.temp_bed.pid.Kd = scalePID_d(DEFAULT_bedKd);
@@ -3146,6 +3176,12 @@ void MarlinSettings::reset() {
   // MKS UI controller
   //
   TERN_(DGUS_LCD_UI_MKS, MKS_reset_settings());
+  //
+  //TG - 9/27/21 additional settings to reset value to default from Configuration.h
+  //TG 7/22/22 commented out this is now PIDFLAG and saved in AVR EEPROM
+  //#if ENABLED(SPINDLE_FEATURE)
+  //  cutter.spindle_use_pid = SPINDLE_USE_PID;
+  //#endif
 
   postprocess();
 
@@ -3427,6 +3463,18 @@ void MarlinSettings::reset() {
     #endif
 
     TERN_(HAS_MULTI_LANGUAGE, gcode.M414_report(forReplay));
+    
+        //TG 10/3/21 added this to include Waveform Logging status
+    #if BOTH(PID_WAVEFORM_LOGGING, SPINDLE_FEATURE)
+      CONFIG_ECHO_MSG(" PID Waveform Logging: ON");
+    #else
+      CONFIG_ECHO_MSG(" PID Waveform Logging: OFF");
+    #endif
+    //TG 10/3/21 added this to include Spindle_Use_PID flag status for terminal log output only
+    #if ENABLED(SPINDLE_FEATURE)
+      CONFIG_ECHO_MSG("Spindle Use PID: M7979: ", cutter.spindle_use_pid);
+    #endif
+
   }
 
 #endif // !DISABLE_M503

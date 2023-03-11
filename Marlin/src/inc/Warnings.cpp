@@ -43,7 +43,7 @@
   #warning "Safety Alert! Enable THERMAL_PROTECTION_HOTENDS for the final build!"
 #endif
 #if HAS_HEATED_BED && DISABLED(THERMAL_PROTECTION_BED)
-  #warning "Safety Alert! Enable THERMAL_PROTECTION_BED for the final build!"
+  //TG commented out     #warning "Safety Alert! Enable THERMAL_PROTECTION_BED for the final build!"
 #endif
 #if HAS_HEATED_CHAMBER && DISABLED(THERMAL_PROTECTION_CHAMBER)
   #warning "Safety Alert! Enable THERMAL_PROTECTION_CHAMBER for the final build!"
@@ -52,7 +52,7 @@
   #warning "Safety Alert! Enable THERMAL_PROTECTION_COOLER for the final build!"
 #endif
 #if ANY_THERMISTOR_IS(998) || ANY_THERMISTOR_IS(999)
-  #warning "Warning! Don't use dummy thermistors (998/999) for final build!"
+  //TG commented out     #warning "Warning! Don't use dummy thermistors (998/999) for final build!"
 #endif
 
 #if NONE(HAS_RESUME_CONTINUE, HOST_PROMPT_SUPPORT)
@@ -60,7 +60,7 @@
 #endif
 
 #if AUTO_ASSIGNED_X2_STEPPER
-  #warning "Auto-assigned X2 STEP/DIR/ENABLE_PINs to unused En_STEP/DIR/ENABLE_PINs."
+  //TG commented out     #warning "Auto-assigned X2 STEP/DIR/ENABLE_PINs to unused En_STEP/DIR/ENABLE_PINs."
 #endif
 #if AUTO_ASSIGNED_X2_MS1
   #warning "Auto-assigned X2_MS1_PIN to an unused En_MS1_PIN."
@@ -118,7 +118,7 @@
   #endif
 #endif
 #if AUTO_ASSIGNED_Y2_STEPPER
-  #warning "Auto-assigned Y2 STEP/DIR/ENABLE_PINs to unused En_STEP/DIR/ENABLE_PINs."
+  //TG commented out     #warning "Auto-assigned Y2 STEP/DIR/ENABLE_PINs to unused En_STEP/DIR/ENABLE_PINs."
 #endif
 #if AUTO_ASSIGNED_Y2_MS1
   #warning "Auto-assigned Y2_MS1_PIN to an unused En_MS1_PIN."

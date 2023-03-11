@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -148,6 +148,7 @@ int8_t GcodeSuite::get_target_extruder_from_command() {
 int8_t GcodeSuite::get_target_e_stepper_from_command(const int8_t dval/*=-1*/) {
   const int8_t e = parser.intval('T', dval);
   if (WITHIN(e, 0, E_STEPPERS - 1)) return e;
+  if (dval == -2) return dval;
 
   SERIAL_ECHO_START();
   SERIAL_CHAR('M'); SERIAL_ECHO(parser.codenum);
@@ -159,7 +160,7 @@ int8_t GcodeSuite::get_target_e_stepper_from_command(const int8_t dval/*=-1*/) {
 }
 
 /**
- * Set XYZIJKE destination and feedrate from the current GCode command
+ * Set XYZ...E destination and feedrate from the current GCode command
  *
  *  - Set destination from included axis codes
  *  - Set to current for missing axis codes
@@ -296,14 +297,14 @@ void GcodeSuite::dwell(millis_t time) {
 
 #endif // G29_RETRY_AND_RECOVER
 
-/**
+/** //TG - The main gcode dispatcher
  * Process the parsed command and dispatch it to its handler
  */
 void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
   TERN_(HAS_FANCHECK, fan_check.check_deferred_error());
 
-  KEEPALIVE_STATE(IN_HANDLER);
-
+  KEEPALIVE_STATE(IN_HANDLER);  //TG - sets gcode.busy_state to IN_HANDLER which emits "busy: processing" to serial ports, uses macro REMEMBER() to call class restorer()
+                                //to save old/set new value, class restorer() gets destroyed on exiting process_parsed_command() and resets previous gcode.busy_state.
  /**
   * Block all Gcodes except M511 Unlock Printer, if printer is locked
   * Will still block Gcodes if M511 is disabled, in which case the printer should be unlocked via LCD Menu
@@ -409,6 +410,10 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
           if (WITHIN(parser.subcode, 2, TERN(G38_PROBE_AWAY, 5, 3)))
             G38(parser.subcode);                                  // G38.4, G38.5: Probe away from target
           break;
+      #endif
+
+      #if ENABLED(CNC_COORDINATE_SYSTEMS)                         //TG 10/3/22 added new G code to report WCS
+        case 39: G39(); break;                                    // G38: Report WCS System values
       #endif
 
       #if HAS_MESH
@@ -719,6 +724,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
 
       case 220: M220(); break;                                    // M220: Set Feedrate Percentage: S<percent> ("FR" on your LCD)
 
+      //TG 9/1/22 disable M221 if no extruders
       #if HAS_EXTRUDERS
         case 221: M221(); break;                                  // M221: Set Flow Percentage
       #endif
@@ -749,7 +755,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
         case 301: M301(); break;                                  // M301: Set hotend PID parameters
       #endif
 
-      #if ENABLED(PIDTEMPBED)
+      #if EITHER(PIDTEMPBED, PIDSPINDLE_USE_PIDTEMPBED)   //TG 9/21/21 was #if ENABLED(PIDTEMPBED), added PIDSPINDLE_USE_PIDTEMPBED
         case 304: M304(); break;                                  // M304: Set bed PID parameters
       #endif
 
@@ -970,6 +976,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
         #if USE_SENSORLESS
           case 914: M914(); break;                                // M914: Set StallGuard sensitivity.
         #endif
+        case 919: M919(); break;                                  // M919: Set stepper Chopper Times
       #endif
 
       #if HAS_L64XX
@@ -1058,6 +1065,38 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
         case 3426: M3426(); break;                                // M3426: Read MCP3426 ADC (over i2c)
       #endif
 
+      #if ENABLED(SPINDLE_FEATURE)                                
+        case 7900: M7900(); break;          //TG - 9/27/21 added custom gcode send flag to update AVR EEPROM
+      #endif                                
+
+      #if ENABLED(SPINDLE_FEATURE)                                
+        case 7979: M7979(); break;          //TG - 9/27/21 added custom gcode spindle_use_pid
+      #endif                                
+
+      #if ENABLED(SPINDLE_FEATURE)                                
+        case 7980: M7980(); break;          //TG - 9/27/21 added custom gcode AVR Reset requested
+      #endif                                
+
+      #if ENABLED(SPINDLE_FEATURE)                                
+        case 7981: M7981(); break;          //TG - 9/27/21 added custom gcode receive Kp, Ki, Kd
+      #endif                                
+
+      #if ENABLED(SPINDLE_FEATURE)                                
+        case 7982: M7982(); break;          //TG - 9/27/21 added custom gcode receive current AVR LCD display index
+      #endif                                
+      
+      #if ENABLED(SPINDLE_FEATURE)                                
+        case 7983: M7983(); break;          //TG - 9/27/21 added custom gcode receive current AVR pid speed
+      #endif                                
+
+      #if ENABLED(SPINDLE_FEATURE)                                
+        case 7984: M7984(); break;          //TG - 9/27/21 added custom gcode receive reload AVR pid speed 
+      #endif                                      
+
+      #if ENABLED(SPINDLE_FEATURE)                                
+        case 7986: M7986(); break;          //TG - 9/27/21 added custom gcode receive Stock Top Z-axis from TFT and SD File 
+      #endif                                      
+
       default: parser.unknown_command_warning(); break;
     }
     break;
@@ -1082,6 +1121,9 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
   if (!no_ok) queue.ok_to_send();
 
   SERIAL_OUT(msgDone); // Call the msgDone serial hook to signal command processing done
+
+//TG - note that the KEEPALIVE_STATE(IN_HANDLER) statement at start of this function used macro REMEMBER() to call class restorer()
+//     class restorer() will be destroyed on exit here and will reset gcode.busy_state to it's previous value (usually NOT_BUSY).
 }
 
 #if ENABLED(M100_FREE_MEMORY_DUMPER)
@@ -1095,7 +1137,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
 void GcodeSuite::process_next_command() {
   GCodeQueue::CommandLine &command = queue.ring_buffer.peek_next_command();
 
-  PORT_REDIRECT(SERIAL_PORTMASK(command.port));
+  PORT_REDIRECT(SERIAL_PORTMASK(command.port));   //TG - work only with serial port that the command came from
 
   TERN_(POWER_LOSS_RECOVERY, recovery.queue_index_r = queue.ring_buffer.index_r);
 

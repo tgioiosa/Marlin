@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -37,6 +37,10 @@
  */
 #define CONFIGURATION_H_VERSION 02000903
 
+//TG 1/19/20 added this to re-assign Y_STEP_PIN and Y_DIR_PIN pins needed for JTAG debugging
+// note: the Y-AXIS driver cannot be used because it still connects to old Y_STEP_PIN and Y_DIR_PIN
+// so be sure to pull the driver out!!
+//#define JTAG_DEBUGGING
 //===========================================================================
 //============================= Getting Started =============================
 //===========================================================================
@@ -69,7 +73,7 @@
 // @section info
 
 // Author info of this build printed to the host during boot and M115
-#define STRING_CONFIG_H_AUTHOR "(none, default config)" // Who made the changes.
+#define STRING_CONFIG_H_AUTHOR "(TG Engineering, Tony, MKS-SGEN)" //TG 12/30/2020 Who made the changes.
 //#define CUSTOM_VERSION_FILE Version.h // Path from the root directory (no quotes)
 
 /**
@@ -87,7 +91,7 @@
 #define SHOW_BOOTSCREEN
 
 // Show the bitmap in Marlin/_Bootscreen.h on startup.
-//#define SHOW_CUSTOM_BOOTSCREEN
+#define SHOW_CUSTOM_BOOTSCREEN	//TG 12/30/2020
 
 // Show the bitmap in Marlin/_Statusscreen.h on the status screen.
 //#define CUSTOM_STATUS_SCREEN_IMAGE
@@ -96,7 +100,7 @@
 
 // Choose the name from boards.h that matches your setup
 #ifndef MOTHERBOARD
-  #define MOTHERBOARD BOARD_RAMPS_14_EFB
+  #define MOTHERBOARD BOARD_MKS_SGEN	//TG 12/30/2020
 #endif
 
 /**
@@ -128,7 +132,7 @@
  * Currently Ethernet (-2) is only supported on Teensy 4.1 boards.
  * :[-2, -1, 0, 1, 2, 3, 4, 5, 6, 7]
  */
-//#define SERIAL_PORT_2 -1
+#define SERIAL_PORT_2 -1  //TG 12/30/2020 this will enable the USBSerial port, 0 for GEN_L and SGEN, -1 for SKR boards
 //#define BAUDRATE_2 250000   // Enable to override BAUDRATE
 
 /**
@@ -143,7 +147,7 @@
 //#define BLUETOOTH
 
 // Name displayed in the LCD "Ready" message and Info menu
-//#define CUSTOM_MACHINE_NAME "3D Printer"
+#define CUSTOM_MACHINE_NAME "MPCNC-MKS_SGEN"	//TG 12/30/2020
 
 // Printer's unique ID, used by some programs to differentiate between machines.
 // Choose your own or use a service like https://www.uuidgenerator.net/version4
@@ -163,7 +167,7 @@
  *
  * :[3, 4, 5, 6]
  */
-//#define LINEAR_AXES 3
+#define LINEAR_AXES 3
 
 /**
  * Axis codes for additional axes:
@@ -192,7 +196,12 @@
 
 // This defines the number of extruders
 // :[0, 1, 2, 3, 4, 5, 6, 7, 8]
-#define EXTRUDERS 1
+#define EXTRUDERS 0	                          //TG 12/30/2020
+#define SPINDLES 1                            //TG 2/3/2021
+
+// Spindle/Laser can use Fan & Heater outputs for control if no extruders or bed. If zero will optionally
+// use J8 header pins for spindle/laser as long as J8 is not being used for TMC UART devices like 2208/2209
+#define SPINDLE_LASER_USE_FAN_HEATER_PINS 0   //TG 2/11/21 force use of J8 pins = 0 ( use Fan & Heater pins = 1)
 
 // Generally expected filament diameter (1.75, 2.85, 3.0, ...). Used for Volumetric, Filament Width Sensor, etc.
 #define DEFAULT_NOMINAL_FILAMENT_DIA 1.75
@@ -260,6 +269,7 @@
 
   #define PARKING_EXTRUDER_PARKING_X { -78, 184 }     // X positions for parking the extruders
   #define PARKING_EXTRUDER_GRAB_DISTANCE 1            // (mm) Distance to move beyond the parking point to grab the extruder
+  //#define MANUAL_SOLENOID_CONTROL                   // Manual control of docking solenoids with M380 S / M381
 
   #if ENABLED(PARKING_EXTRUDER)
 
@@ -486,15 +496,15 @@
  *   999 : Dummy Table that ALWAYS reads 100°C or the temperature defined below.
  *
  */
-#define TEMP_SENSOR_0 1
-#define TEMP_SENSOR_1 0
+#define TEMP_SENSOR_0 999	  //TG 12/30/2020
+#define TEMP_SENSOR_1 998   //TG 12/30/2020
 #define TEMP_SENSOR_2 0
 #define TEMP_SENSOR_3 0
 #define TEMP_SENSOR_4 0
 #define TEMP_SENSOR_5 0
 #define TEMP_SENSOR_6 0
 #define TEMP_SENSOR_7 0
-#define TEMP_SENSOR_BED 0
+#define TEMP_SENSOR_BED 998	//TG 12/30/2020
 #define TEMP_SENSOR_PROBE 0
 #define TEMP_SENSOR_CHAMBER 0
 #define TEMP_SENSOR_COOLER 0
@@ -582,7 +592,7 @@
 // PID Tuning Guide here: https://reprap.org/wiki/PID_Tuning
 
 // Comment the following line to disable PID and enable bang-bang.
-#define PIDTEMP
+//#define PIDTEMP 	//TG 12/30/2020 disable PID for BED heater, but we will use the Kp,Ki,Kd values for Spindle Speed
 #define BANG_MAX 255     // Limits current to nozzle while in bang-bang mode; 255=full current
 #define PID_MAX BANG_MAX // Limits current to nozzle while PID is active (see PID_FUNCTIONAL_RANGE below); 255=full current
 #define PID_K1 0.95      // Smoothing factor within any PID loop
@@ -611,7 +621,7 @@
 //===========================================================================
 
 /**
- * PID Bed Heating
+ * PID Bed Heating  //TG **for CNC we can use Kp,Ki,Kd from BED to get access to M304 and EEPROM storage  
  *
  * If this option is enabled set PID constants below.
  * If this option is disabled, bang-bang will be used and BED_LIMIT_SWITCHING will enable hysteresis.
@@ -623,7 +633,12 @@
  * heater. If your configuration is significantly different than this and you don't understand
  * the issues involved, don't use bed PID until someone else verifies that your hardware works.
  */
-//#define PIDTEMPBED
+//#define PIDTEMPBED	//TG 12/30/2020
+
+/*
+ * //TG 9/28/21 - note: for CNC we can use Kp,Ki,Kd from BED to get access to M304 and EEPROM storage
+ */
+#define PIDSPINDLE_USE_PIDTEMPBED   //TG 9/21/21 added to allow using Kp,Ki,Kd from BED to get access to M304 and EEPROM storage
 
 //#define BED_LIMIT_SWITCHING
 
@@ -635,15 +650,16 @@
  */
 #define MAX_BED_POWER 255 // limits duty cycle to bed; 255=full current
 
-#if ENABLED(PIDTEMPBED)
+#if EITHER(PIDTEMPBED, PIDSPINDLE_USE_PIDTEMPBED)   //TG 9/21/21 was #if ENABLED(PIDTEMPBED), added PIDSPINDLE_USE_PIDTEMPBED
   //#define MIN_BED_POWER 0
   //#define PID_BED_DEBUG // Sends debug data to the serial port.
 
-  // 120V 250W silicone heater into 4mm borosilicate (MendelMax 1.5+)
-  // from FOPDT model - kp=.39 Tp=405 Tdead=66, Tc set to 79.2, aggressive factor of .15 (vs .1, 1, 10)
-  #define DEFAULT_bedKp 10.00
-  #define DEFAULT_bedKi .023
-  #define DEFAULT_bedKd 305.4
+  //TG 10/2/21  default values for DeWalt 660 spindle motor
+  // 
+  #define DEFAULT_bedKp 0.19
+  #define DEFAULT_bedKi 0.19
+  #define DEFAULT_bedKd 0.00
+  
 
   // FIND YOUR OWN: "M303 E-1 C8 S90" to run autotune on the bed at 90 degreesC for 8 cycles.
 #endif // PIDTEMPBED
@@ -736,10 +752,12 @@
  * details can be tuned in Configuration_adv.h
  */
 
-#define THERMAL_PROTECTION_HOTENDS // Enable thermal protection for all extruders
-#define THERMAL_PROTECTION_BED     // Enable thermal protection for the heated bed
-#define THERMAL_PROTECTION_CHAMBER // Enable thermal protection for the heated chamber
-#define THERMAL_PROTECTION_COOLER  // Enable thermal protection for the laser cooling
+
+//TG 2/22/21 need all of these turned off since for CNC there is no hotend, bed, or chamber
+//#define THERMAL_PROTECTION_HOTENDS // Enable thermal protection for all extruders
+//#define THERMAL_PROTECTION_BED     // Enable thermal protection for the heated bed
+//#define THERMAL_PROTECTION_CHAMBER // Enable thermal protection for the heated chamber
+//#define THERMAL_PROTECTION_COOLER  // Enable thermal protection for the laser cooling
 
 //===========================================================================
 //============================= Mechanical Settings =========================
@@ -783,9 +801,9 @@
 //#define USE_IMIN_PLUG
 //#define USE_JMIN_PLUG
 //#define USE_KMIN_PLUG
-//#define USE_XMAX_PLUG
-//#define USE_YMAX_PLUG
-//#define USE_ZMAX_PLUG
+#define USE_XMAX_PLUG	//TG 12/30/2020
+#define USE_YMAX_PLUG	//TG 12/30/2020
+#define USE_ZMAX_PLUG //TG 10/4/2022
 //#define USE_IMAX_PLUG
 //#define USE_JMAX_PLUG
 //#define USE_KMAX_PLUG
@@ -828,10 +846,10 @@
   //#define ENDSTOPPULLDOWN_ZMIN_PROBE
 #endif
 
-// Mechanical endstop with COM to ground and NC to Signal uses "false" here (most common setup).
-#define X_MIN_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
-#define Y_MIN_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
-#define Z_MIN_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
+// Mechanical endstop with COM to ground and NC to Signal uses "false" here, goes high when activated (most common setup).
+#define X_MIN_ENDSTOP_INVERTING false 	//TG 12/30/2020 Set to true to invert the logic of the endstop.
+#define Y_MIN_ENDSTOP_INVERTING false 	//TG 12/30/2020 Set to true to invert the logic of the endstop.
+#define Z_MIN_ENDSTOP_INVERTING true 	  //TG 3/5/2021 Zmin switch wired NO, closes to ground when activated
 #define I_MIN_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
 #define J_MIN_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
 #define K_MIN_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
@@ -841,7 +859,7 @@
 #define I_MAX_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
 #define J_MAX_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
 #define K_MAX_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
-#define Z_MIN_PROBE_ENDSTOP_INVERTING false // Set to true to invert the logic of the probe.
+#define Z_MIN_PROBE_ENDSTOP_INVERTING true 	//TG 3/5/2021 Zmin switch wired NO, closes to ground when activated
 
 /**
  * Stepper Drivers
@@ -861,19 +879,19 @@
  *          TMC5130, TMC5130_STANDALONE, TMC5160, TMC5160_STANDALONE
  * :['A4988', 'A5984', 'DRV8825', 'LV8729', 'L6470', 'L6474', 'POWERSTEP01', 'TB6560', 'TB6600', 'TMC2100', 'TMC2130', 'TMC2130_STANDALONE', 'TMC2160', 'TMC2160_STANDALONE', 'TMC2208', 'TMC2208_STANDALONE', 'TMC2209', 'TMC2209_STANDALONE', 'TMC26X', 'TMC26X_STANDALONE', 'TMC2660', 'TMC2660_STANDALONE', 'TMC5130', 'TMC5130_STANDALONE', 'TMC5160', 'TMC5160_STANDALONE']
  */
-#define X_DRIVER_TYPE  A4988
-#define Y_DRIVER_TYPE  A4988
-#define Z_DRIVER_TYPE  A4988
-//#define X2_DRIVER_TYPE A4988
-//#define Y2_DRIVER_TYPE A4988
+#define X_DRIVER_TYPE  TMC2100	//TG 3/6/2021 set all driver Vref to 0.75V (530mA)  0.85V=600ma, 0.92V=650ma, 1.00V=710ma, 1.06V=750ma 
+#define Y_DRIVER_TYPE  TMC2100	//TG 3/6/2021 set all driver Vref to 0.75V (530mA)  1.13V=800ma, 1.20V=850ma, 1.27V=900ma, 1.41V=1000ma
+#define Z_DRIVER_TYPE  TMC2100	//TG 3/6/2021 set all driver Vref to 0.75V (530mA)  all currents are RMS, not peak
+#define X2_DRIVER_TYPE TMC2100	//TG 3/6/2021 set all driver Vref to 0.75V (530mA)
+#define Y2_DRIVER_TYPE TMC2100	//TG 3/6/2021 set all driver Vref to 0.75V (530mA)
 //#define Z2_DRIVER_TYPE A4988
 //#define Z3_DRIVER_TYPE A4988
 //#define Z4_DRIVER_TYPE A4988
 //#define I_DRIVER_TYPE  A4988
 //#define J_DRIVER_TYPE  A4988
 //#define K_DRIVER_TYPE  A4988
-#define E0_DRIVER_TYPE A4988
-//#define E1_DRIVER_TYPE A4988
+#define E0_DRIVER_TYPE TMC2100	//TG 3/6/2021 set all driver Vref to 0.75V (530mA)
+#define E1_DRIVER_TYPE TMC2100	//TG 3/6/2021 set all driver Vref to 0.75V (530mA)
 //#define E2_DRIVER_TYPE A4988
 //#define E3_DRIVER_TYPE A4988
 //#define E4_DRIVER_TYPE A4988
@@ -927,18 +945,18 @@
  * Override with M92
  *                                      X, Y, Z [, I [, J [, K]]], E0 [, E1[, E2...]]
  */
-#define DEFAULT_AXIS_STEPS_PER_UNIT   { 80, 80, 400, 500 }
+#define DEFAULT_AXIS_STEPS_PER_UNIT   { 99.8, 99.8, 399.5 }	//TG 2/5/2022
 
 /**
  * Default Max Feed Rate (mm/s)
  * Override with M203
  *                                      X, Y, Z [, I [, J [, K]]], E0 [, E1[, E2...]]
  */
-#define DEFAULT_MAX_FEEDRATE          { 300, 300, 5, 25 }
+#define DEFAULT_MAX_FEEDRATE          { 200, 200, 60 }	//TG 12/30/2020
 
 //#define LIMITED_MAX_FR_EDITING        // Limit edit via M203 or LCD to DEFAULT_MAX_FEEDRATE * 2
 #if ENABLED(LIMITED_MAX_FR_EDITING)
-  #define MAX_FEEDRATE_EDIT_VALUES    { 600, 600, 10, 50 } // ...or, set your own edit limits
+  #define MAX_FEEDRATE_EDIT_VALUES    { 600, 600, 10 } // ...or, set your own edit limits
 #endif
 
 /**
@@ -947,11 +965,11 @@
  * Override with M201
  *                                      X, Y, Z [, I [, J [, K]]], E0 [, E1[, E2...]]
  */
-#define DEFAULT_MAX_ACCELERATION      { 3000, 3000, 100, 10000 }
+#define DEFAULT_MAX_ACCELERATION      { 180, 180, 80}	//TG 12/30/2020
 
 //#define LIMITED_MAX_ACCEL_EDITING     // Limit edit via M201 or LCD to DEFAULT_MAX_ACCELERATION * 2
 #if ENABLED(LIMITED_MAX_ACCEL_EDITING)
-  #define MAX_ACCEL_EDIT_VALUES       { 6000, 6000, 200, 20000 } // ...or, set your own edit limits
+  #define MAX_ACCEL_EDIT_VALUES       { 6000, 6000, 200 } // ...or, set your own edit limits
 #endif
 
 /**
@@ -962,9 +980,9 @@
  *   M204 R    Retract Acceleration
  *   M204 T    Travel Acceleration
  */
-#define DEFAULT_ACCELERATION          3000    // X, Y, Z and E acceleration for printing moves
-#define DEFAULT_RETRACT_ACCELERATION  3000    // E acceleration for retracts
-#define DEFAULT_TRAVEL_ACCELERATION   3000    // X, Y, Z acceleration for travel (non printing) moves
+#define DEFAULT_ACCELERATION          180    	//TG 12/30/2020 X, Y, Z and E acceleration for printing moves
+#define DEFAULT_RETRACT_ACCELERATION  3000    //TG 12/30/2020 E acceleration for retracts
+#define DEFAULT_TRAVEL_ACCELERATION   180    	//TG 12/30/2020 X, Y, Z acceleration for travel (non printing) moves
 
 /**
  * Default Jerk limits (mm/s)
@@ -976,8 +994,8 @@
  */
 //#define CLASSIC_JERK
 #if ENABLED(CLASSIC_JERK)
-  #define DEFAULT_XJERK 10.0
-  #define DEFAULT_YJERK 10.0
+  #define DEFAULT_XJERK 3.5	//TG 12/30/2020
+  #define DEFAULT_YJERK 3.5	//TG 12/30/2020
   #define DEFAULT_ZJERK  0.3
   //#define DEFAULT_IJERK  0.3
   //#define DEFAULT_JJERK  0.3
@@ -987,7 +1005,7 @@
 
   //#define LIMITED_JERK_EDITING        // Limit edit via M205 or LCD to DEFAULT_aJERK * 2
   #if ENABLED(LIMITED_JERK_EDITING)
-    #define MAX_JERK_EDIT_VALUES { 20, 20, 0.6, 10 } // ...or, set your own edit limits
+    #define MAX_JERK_EDIT_VALUES { 20, 20, 0.6 } // ...or, set your own edit limits
   #endif
 #endif
 
@@ -1001,7 +1019,7 @@
  *   https://blog.kyneticcnc.com/2018/10/computing-junction-deviation-for-marlin.html
  */
 #if DISABLED(CLASSIC_JERK)
-  #define JUNCTION_DEVIATION_MM 0.013 // (mm) Distance from real junction edge
+  #define JUNCTION_DEVIATION_MM 0.04 	//TG 12/30/2020 (mm) Distance from real junction edge
   #define JD_HANDLE_SMALL_SEGMENTS    // Use curvature estimation instead of just the junction angle
                                       // for small segments (< 1mm) with large junction angles (> 135°).
 #endif
@@ -1014,7 +1032,7 @@
  *
  * See https://github.com/synthetos/TinyG/wiki/Jerk-Controlled-Motion-Explained
  */
-//#define S_CURVE_ACCELERATION
+#define S_CURVE_ACCELERATION	//TG 12/30/2020
 
 //===========================================================================
 //============================= Z Probe Options =============================
@@ -1030,7 +1048,7 @@
  * The probe replaces the Z-MIN endstop and is used for Z homing.
  * (Automatically enables USE_PROBE_FOR_Z_HOMING.)
  */
-#define Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN
+//#define Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN	//TG 12/30/2020
 
 // Force the use of the probe for Z-axis homing
 //#define USE_PROBE_FOR_Z_HOMING
@@ -1050,7 +1068,7 @@
  *      - normally-closed switches to GND and D32.
  *      - normally-open switches to 5V and D32.
  */
-//#define Z_MIN_PROBE_PIN 32 // Pin 32 is the RAMPS default
+#define Z_MIN_PROBE_PIN P1_28 // Pin 32 is the RAMPS default
 
 /**
  * Probe Type
@@ -1070,7 +1088,7 @@
  * A Fix-Mounted Probe either doesn't deploy or needs manual deployment.
  *   (e.g., an inductive probe or a nozzle-based probe-switch.)
  */
-//#define FIX_MOUNTED_PROBE
+#define FIX_MOUNTED_PROBE   //TG 9/30/22 uncomment for G38 to work using ZMIN endstop pin as a Probe
 
 /**
  * Use the nozzle as the probe, as with a conductive
@@ -1186,13 +1204,13 @@
 #define PROBING_MARGIN 10
 
 // X and Y axis travel speed (mm/min) between probes
-#define XY_PROBE_FEEDRATE (133*60)
+#define XY_PROBE_FEEDRATE (133*60)	//TG 12/30/2020
 
 // Feedrate (mm/min) for the first approach when double-probing (MULTIPLE_PROBING == 2)
-#define Z_PROBE_FEEDRATE_FAST (4*60)
+#define Z_PROBE_FEEDRATE_FAST (3*60)
 
 // Feedrate (mm/min) for the "accurate" probe of each point
-#define Z_PROBE_FEEDRATE_SLOW (Z_PROBE_FEEDRATE_FAST / 2)
+#define Z_PROBE_FEEDRATE_SLOW (Z_PROBE_FEEDRATE_FAST / 2)	//TG 12/30/2020
 
 /**
  * Probe Activation Switch
@@ -1330,9 +1348,9 @@
 // @section machine
 
 // Invert the stepper direction. Change (or reverse the motor connector) if an axis goes the wrong way.
-#define INVERT_X_DIR false
-#define INVERT_Y_DIR true
-#define INVERT_Z_DIR false
+#define INVERT_X_DIR false  //TG 3/4/2021 correct for MPCNC
+#define INVERT_Y_DIR true   //TG 3/4/2021 correct for MPCNC
+#define INVERT_Z_DIR true	  //TG 3/4/2021 correct for MPCNC
 //#define INVERT_I_DIR false
 //#define INVERT_J_DIR false
 //#define INVERT_K_DIR false
@@ -1340,8 +1358,8 @@
 // @section extruder
 
 // For direct drive extruder v9 set to true, for geared extruder set to false.
-#define INVERT_E0_DIR false
-#define INVERT_E1_DIR false
+#define INVERT_E0_DIR false	//TG 3/4/2021 correct for MPCNC
+#define INVERT_E1_DIR false	//TG 3/4/2021 correct for MPCNC
 #define INVERT_E2_DIR false
 #define INVERT_E3_DIR false
 #define INVERT_E4_DIR false
@@ -1370,24 +1388,24 @@
 // :[-1,1]
 #define X_HOME_DIR -1
 #define Y_HOME_DIR -1
-#define Z_HOME_DIR -1
-//#define I_HOME_DIR -1
+#define Z_HOME_DIR  1    //TG 9/30/22 - changed to Home Z up to max(MPCNC limit when tube slips past lower bearings )
+//#define I_HOME_DIR -1  //             using ZMAX endstop for homing now             
 //#define J_HOME_DIR -1
 //#define K_HOME_DIR -1
 
 // @section machine
 
-// The size of the printable area
-#define X_BED_SIZE 200
-#define Y_BED_SIZE 200
+// The size of the print bed
+#define X_BED_SIZE 520	//TG 4/30/2021  updated after vacuum system added was 550
+#define Y_BED_SIZE 520	//TG 4/30/2021  updated after vacuum system added was 540
 
 // Travel limits (mm) after homing, corresponding to endstop positions.
 #define X_MIN_POS 0
 #define Y_MIN_POS 0
-#define Z_MIN_POS 0
+#define Z_MIN_POS -65 //TG 9/30/2022 min travel of MPCNC (w/15.7mm tool length) just hits spoilboard (if Z Homing down use 0, Z Homing up use -65)
 #define X_MAX_POS X_BED_SIZE
 #define Y_MAX_POS Y_BED_SIZE
-#define Z_MAX_POS 200
+#define Z_MAX_POS 0	  //TG 9/30/2022 max travel of MPCNC before rising past lower bearings (if Z Homing down use 65, Z Homing up use 0)
 //#define I_MIN_POS 0
 //#define I_MAX_POS 50
 //#define J_MIN_POS 0
@@ -1409,25 +1427,25 @@
 #if ENABLED(MIN_SOFTWARE_ENDSTOPS)
   #define MIN_SOFTWARE_ENDSTOP_X
   #define MIN_SOFTWARE_ENDSTOP_Y
-  #define MIN_SOFTWARE_ENDSTOP_Z
+  #define MIN_SOFTWARE_ENDSTOP_Z	//TG 9/30/2022 homing Z now up to max travel endstop
   #define MIN_SOFTWARE_ENDSTOP_I
   #define MIN_SOFTWARE_ENDSTOP_J
   #define MIN_SOFTWARE_ENDSTOP_K
 #endif
 
 // Max software endstops constrain movement within maximum coordinate bounds
-#define MAX_SOFTWARE_ENDSTOPS
+#define MAX_SOFTWARE_ENDSTOPS	//TG 12/30/2020
 #if ENABLED(MAX_SOFTWARE_ENDSTOPS)
   #define MAX_SOFTWARE_ENDSTOP_X
   #define MAX_SOFTWARE_ENDSTOP_Y
-  #define MAX_SOFTWARE_ENDSTOP_Z
+  //#define MAX_SOFTWARE_ENDSTOP_Z  //TG 9/30/2022 homing Z now up to max travel endstop
   #define MAX_SOFTWARE_ENDSTOP_I
   #define MAX_SOFTWARE_ENDSTOP_J
   #define MAX_SOFTWARE_ENDSTOP_K
 #endif
 
 #if EITHER(MIN_SOFTWARE_ENDSTOPS, MAX_SOFTWARE_ENDSTOPS)
-  //#define SOFT_ENDSTOPS_MENU_ITEM  // Enable/Disable software endstops from the LCD
+  #define SOFT_ENDSTOPS_MENU_ITEM  // Enable/Disable software endstops from the LCD
 #endif
 
 /**
@@ -1754,7 +1772,7 @@
 #endif
 
 // Homing speeds (mm/min)
-#define HOMING_FEEDRATE_MM_M { (50*60), (50*60), (4*60) }
+#define HOMING_FEEDRATE_MM_M { (45*60), (45*60), (4*60) } //TG 3/5/2021
 
 // Validate that endstops are triggered on homing moves
 #define VALIDATE_HOMING_ENDSTOPS
@@ -1831,12 +1849,12 @@
  *   M501 - Read settings from EEPROM. (i.e., Throw away unsaved changes)
  *   M502 - Revert settings to "factory" defaults. (Follow with M500 to init the EEPROM.)
  */
-//#define EEPROM_SETTINGS     // Persistent storage with M500 and M501
+#define EEPROM_SETTINGS       //TG 3/4/21 make sure this is enabled  Persistent storage with M500 and M501
 //#define DISABLE_M503        // Saves ~2700 bytes of PROGMEM. Disable for release!
 #define EEPROM_CHITCHAT       // Give feedback on EEPROM commands. Disable to save PROGMEM.
 #define EEPROM_BOOT_SILENT    // Keep M503 quiet and only give errors during first load
 #if ENABLED(EEPROM_SETTINGS)
-  //#define EEPROM_AUTO_INIT  // Init EEPROM automatically on any errors.
+  #define EEPROM_AUTO_INIT    //TG 12/30/2020 Init EEPROM automatically on any errors.  //#define EEPROM_AUTO_INIT  // Init EEPROM automatically on any errors.
   //#define EEPROM_INIT_NOW   // Init EEPROM on first boot after a new build.
 #endif
 
@@ -2105,7 +2123,7 @@
  * SD Card support is disabled by default. If your controller has an SD slot,
  * you must uncomment the following option or it won't work.
  */
-//#define SDSUPPORT
+#define SDSUPPORT
 
 /**
  * SD CARD: ENABLE CRC
@@ -2175,8 +2193,8 @@
 //
 // Add individual axis homing items (Home X, Home Y, and Home Z) to the LCD menu.
 //
-//#define INDIVIDUAL_AXIS_HOMING_MENU
-//#define INDIVIDUAL_AXIS_HOMING_SUBMENU
+#define INDIVIDUAL_AXIS_HOMING_MENU	//TG 12/30/2020
+#define INDIVIDUAL_AXIS_HOMING_SUBMENU //TG 12/30/2020
 
 //
 // SPEAKER/BUZZER
@@ -2365,7 +2383,7 @@
 // RepRapDiscount FULL GRAPHIC Smart Controller
 // https://reprap.org/wiki/RepRapDiscount_Full_Graphic_Smart_Controller
 //
-//#define REPRAP_DISCOUNT_FULL_GRAPHIC_SMART_CONTROLLER
+#define REPRAP_DISCOUNT_FULL_GRAPHIC_SMART_CONTROLLER  //TG enabled
 
 //
 // K.3D Full Graphic Smart Controller
@@ -2841,10 +2859,13 @@
 // :[1,2,3,4,5,6,7,8]
 //#define NUM_M106_FANS 1
 
+// Increase the FAN PWM frequency. Removes the PWM noise but increases heating in the FET/Arduino
+//#define FAST_PWM_FAN
+
 // Use software PWM to drive the fan, as for the heaters. This uses a very low frequency
 // which is not as annoying as with the hardware PWM. On the other hand, if this frequency
 // is too low, you should also increment SOFT_PWM_SCALE.
-//#define FAN_SOFT_PWM
+//#define FAN_SOFT_PWM                  //TG 9/1/21 this option gives PWM freq of 7 Hz @ SOFT_PWM_SCALE=0, 124 Hz @ SOFT_PWM_SCALE=4 
 
 // Incrementing this by 1 will double the software PWM frequency,
 // affecting heaters, and the fan if FAN_SOFT_PWM is enabled.
@@ -2897,14 +2918,14 @@
  *
  * LED Type. Enable only one of the following two options.
  */
-//#define RGB_LED
+//#define RGB_LED    //TG 12/30/2020 no RGB led's for MKS boards
 //#define RGBW_LED
 
 #if EITHER(RGB_LED, RGBW_LED)
-  //#define RGB_LED_R_PIN 34
-  //#define RGB_LED_G_PIN 43
-  //#define RGB_LED_B_PIN 35
-  //#define RGB_LED_W_PIN -1
+  #define RGB_LED_R_PIN 5 //TG 12/30/2020  these are for SWX1 board
+  #define RGB_LED_G_PIN 4 //TG 12/30/2020
+  #define RGB_LED_B_PIN 6 //TG 12/30/2020
+  #define RGB_LED_W_PIN -1
 #endif
 
 // Support for Adafruit NeoPixel LED driver
@@ -2970,6 +2991,13 @@
 
 // Edit servo angles with M281 and save to EEPROM with M500
 //#define EDITABLE_SERVO_ANGLES
+#define SHORT_BUILD_VERSION "105T 2.0.9.3 (release) "
+
+
+//TG 4/30/21 added this to fix garbled characters in Marlin Mode on SGEN boards
+//#define ST7920_DELAY_1 DELAY_NS(100)
+//#define ST7920_DELAY_2 DELAY_NS(1000)
+//#define ST7920_DELAY_3 DELAY_NS(1000)
 
 // Disable servo with M282 to reduce power consumption, noise, and heat when not in use
 //#define SERVO_DETACH_GCODE

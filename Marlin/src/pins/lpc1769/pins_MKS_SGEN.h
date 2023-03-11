@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -55,4 +55,38 @@
 
   // Reduce baud rate to improve software serial reliability
   #define TMC_BAUD_RATE                    19200
+#endif
+
+//TG 1/21/20 added this for case light
+#if ENABLED(CASE_LIGHT_ENABLE) && !defined(CASE_LIGHT_PIN) && !defined(SPINDLE_LASER_ENA_PIN)
+  #if !HAS_HEATED_BED                             
+    #define CASE_LIGHT_PIN                  P2_05  // no BED, can use BED PWM as on/off
+  #elif EXTRUDERS<=1
+    #define CASE_LIGHT_PIN                  P2_06  // no extruders, can use HTR2 output
+  #elif !HAS_TMC_UART                             // Use J8 if possible
+    #define CASE_LIGHT_PIN				   P1_22  // Pullup or pulldown!
+  #endif
+#endif
+
+//TG 1/21/20 added this for Spindle/Laser
+// M3/M4/M5 - Spindle/Laser Control
+// IF 
+#if HAS_CUTTER && !defined(SPINDLE_LASER_ENA_PIN)
+  #if !HAS_HEATED_BED && EXTRUDERS==0 && SPINDLE_LASER_USE_FAN_HEATER_PINS 
+     #undef FAN_PIN 
+     #define SPINDLE_LASER_PWM_PIN			   P2_04  // no extruders, can use FAN PWM output
+	   #undef HEATER_1_PIN
+     #define SPINDLE_LASER_ENA_PIN         P2_06  // no extruders, can use HTR2 output
+	   #undef HEATER_0_PIN
+     #define SPINDLE_DIR_PIN               P2_07  // no extruders, can use HTR1 output
+     #undef HEATER_BED_PIN
+     #define VACUUM_ENA_PIN				         P2_05  // no BED, can use BED PWM as on/off
+  #elif !defined(HAS_TMC_UART)                    // Use J8 if possible only when no TMC_UART drivers in use
+    #define SPINDLE_LASER_ENA_PIN          P2_11  // Pullup or pulldown!
+    #define SPINDLE_LASER_PWM_PIN          P1_23  // Hardware PWM has a conflict with SDSS pin
+    #define SPINDLE_DIR_PIN                P2_12  // Pullup or pulldown!
+    #define VACUUM_ENA_PIN			           P1_22  // Pullup or pulldown!
+  #else
+    #error "No auto-assignable Spindle/Laser pins available."
+  #endif
 #endif

@@ -49,7 +49,7 @@
 #ifdef TARGET_LPC1768
 
 #include "../../inc/MarlinConfig.h"
-#include <SPI.h>
+#include <src/HAL/LPC1768/include/SPI.h>
 
 // Hardware SPI and SPIClass
 #include <lpc17xx_pinsel.h>

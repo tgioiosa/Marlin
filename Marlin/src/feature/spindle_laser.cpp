@@ -1,4 +1,14 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
+ * 
+ * NOTE: As of 7/15/22, a new AVR Triac Controller board is used, which handles PID speed control of the spindle motor.
+ *       It requires a TARGET_RPM from Marlin and will send the ACTUAL_RPM back to Marlin via I2C. The AVR Triac
+ *       Controller measures Spindle RPM and performs all speed regulation.
+ *       Additional information can also be exchanged like PID flag, PID tuning data, etc.
+ *       
+ *       Marlin still controls the Spindle ON/OFF Enable and Vacuum Enable relays, as well as Spindle Direction signal.
+ *       However, the PWM output from Marlin for spindle speed is not used, and Marlin RPM measurement is not used.
+ *       Therefore Timer3 can be returned to softPWM service and Timer2 can be released.
+ * 
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -38,14 +48,16 @@
   #include "../feature/ammeter.h"
 #endif
 
-SpindleLaser cutter;
-uint8_t SpindleLaser::power;
+SpindleLaser cutter = {};
+uint16_t SpindleLaser::power;                                         //TG 9/30/21 changed to uint16_t for more resolution
 #if ENABLED(LASER_FEATURE)
   cutter_test_pulse_t SpindleLaser::testPulse = 50;                   // Test fire Pulse time ms value.
 #endif
 bool SpindleLaser::isReady;                                           // Ready to apply power setting from the UI to OCR
 cutter_power_t SpindleLaser::menuPower,                               // Power set via LCD menu in PWM, PERCENT, or RPM
                SpindleLaser::unitPower;                               // LCD status power in PWM, PERCENT, or RPM
+
+bool SpindleLaser::spindle_use_pid;                                   //TG - 9/17/21 flag to use PID speed control for spindle or not
 
 #if ENABLED(MARLIN_DEV_MODE)
   cutter_frequency_t SpindleLaser::frequency;                         // PWM frequency setting; range: 2K - 50K
@@ -62,11 +74,12 @@ void SpindleLaser::init() {
     OUT_WRITE(SPINDLE_LASER_ENA_PIN, !SPINDLE_LASER_ACTIVE_STATE);    // Init spindle to off
   #endif
   #if ENABLED(SPINDLE_CHANGE_DIR)
-    OUT_WRITE(SPINDLE_DIR_PIN, SPINDLE_INVERT_DIR);                   // Init rotation to clockwise (M3)
+    //TG 8/4/22 UNCOMMENT BEFORE RELEASE!!
+//    OUT_WRITE(SPINDLE_DIR_PIN, SPINDLE_INVERT_DIR ? 255 : 0);       // Init rotation to clockwise (M3)
   #endif
   #if ENABLED(SPINDLE_LASER_USE_PWM)
-    SET_PWM(SPINDLE_LASER_PWM_PIN);
-    set_pwm_duty(pin_t(SPINDLE_LASER_PWM_PIN), SPINDLE_LASER_PWM_OFF); // Set to lowest speed
+    SET_PWM(SPINDLE_LASER_PWM_PIN);                                   //TG set PWM pin to output mode, 7/15/22 - PWM no longer used with AVR Triac Controller
+    analogWrite(pin_t(SPINDLE_LASER_PWM_PIN), SPINDLE_LASER_PWM_OFF); // Set to lowest speed
   #endif
   #if ENABLED(HAL_CAN_SET_PWM_FREQ) && defined(SPINDLE_LASER_FREQUENCY)
     set_pwm_frequency(pin_t(SPINDLE_LASER_PWM_PIN), SPINDLE_LASER_FREQUENCY);
@@ -89,23 +102,23 @@ void SpindleLaser::init() {
    *
    * @param ocr Power value
    */
-  void SpindleLaser::_set_ocr(const uint8_t ocr) {
+  //TG - 9/30/21 customized the 3 functions below to get higher resolution 16-bit PWM
+  void SpindleLaser::_set_ocr16 (const uint16_t ocr16){
     #if NEEDS_HARDWARE_PWM && SPINDLE_LASER_FREQUENCY
       set_pwm_frequency(pin_t(SPINDLE_LASER_PWM_PIN), TERN(MARLIN_DEV_MODE, frequency, SPINDLE_LASER_FREQUENCY));
     #endif
-    set_pwm_duty(pin_t(SPINDLE_LASER_PWM_PIN), ocr ^ SPINDLE_LASER_PWM_OFF);
+    set_pwm_duty(pin_t(SPINDLE_LASER_PWM_PIN), ocr16 ^ SPINDLE_LASER_PWM_OFF);
   }
-
-  void SpindleLaser::set_ocr(const uint8_t ocr) {
+  void SpindleLaser::set_ocr16(const uint16_t ocr16) {
     WRITE(SPINDLE_LASER_ENA_PIN,  SPINDLE_LASER_ACTIVE_STATE); // Cutter ON
-    _set_ocr(ocr);
+    _set_ocr16(ocr16);
   }
-
-  void SpindleLaser::ocr_off() {
+  void SpindleLaser::ocr16_off() {
     WRITE(SPINDLE_LASER_ENA_PIN, !SPINDLE_LASER_ACTIVE_STATE); // Cutter OFF
-    _set_ocr(0);
+    _set_ocr16(0);
   }
-#endif // SPINDLE_LASER_USE_PWM
+#endif  
+//TG - 9/30/21 end of customized functions
 
 /**
  * Apply power for laser/spindle
@@ -114,22 +127,23 @@ void SpindleLaser::init() {
  *
  * @param opwr Power value. Range 0 to MAX. When 0 disable spindle/laser.
  */
-void SpindleLaser::apply_power(const uint8_t opwr) {
-  static uint8_t last_power_applied = 0;
+// Set cutter ON/OFF state (and PWM) to the given cutter power value, customized 9/30/21 for higher resolution 16-bit PWM
+void SpindleLaser::apply_power(const uint16_t opwr) {   //TG - 9/30/21 changed to 16-bit for hires PWM > 8 bit
+  static uint16_t last_power_applied = 0;               //TG - 9/30/21 changed to 16-bit for hires PWM > 8 bit
   if (opwr == last_power_applied) return;
   last_power_applied = opwr;
   power = opwr;
   #if ENABLED(SPINDLE_LASER_USE_PWM)
     if (cutter.unitPower == 0 && CUTTER_UNIT_IS(RPM)) {
-      ocr_off();
+      ocr16_off();
       isReady = false;
     }
     else if (ENABLED(CUTTER_POWER_RELATIVE) || enabled()) {
-      set_ocr(power);
+      set_ocr16(power);                                 //TG - 9/30/21 changed to 16-bit for hires PWM > 8 bit
       isReady = true;
     }
     else {
-      ocr_off();
+      ocr16_off();
       isReady = false;
     }
   #elif ENABLED(SPINDLE_SERVO)
@@ -147,8 +161,9 @@ void SpindleLaser::apply_power(const uint8_t opwr) {
    */
   void SpindleLaser::set_reverse(const bool reverse) {
     const bool dir_state = (reverse == SPINDLE_INVERT_DIR); // Forward (M3) HIGH when not inverted
-    if (TERN0(SPINDLE_STOP_ON_DIR_CHANGE, enabled()) && READ(SPINDLE_DIR_PIN) != dir_state) disable();
-    WRITE(SPINDLE_DIR_PIN, dir_state);
+//TG 8/4/22 UNCOMMENT BEFORE RELEASE if you need spindle dir control line for motor!!
+//    if (TERN0(SPINDLE_STOP_ON_DIR_CHANGE, enabled()) && READ(SPINDLE_DIR_PIN) != dir_state) disable();
+//    WRITE(SPINDLE_DIR_PIN, dir_state);
   }
 #endif
 
