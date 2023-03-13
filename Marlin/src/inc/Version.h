@@ -85,10 +85,10 @@
   #define SOURCE_CODE_URL "github.com/MarlinFirmware/Marlin"
 #endif
 
-//TG 2/13/23 override with local SRC_FILE_NAME supplied by platformio build_flags
+//TG 2/13/23 override with local SRC_NAME_SHORT supplied by platformio build_flags, it has the a
 #ifdef SOURCE_CODE_URL
   #undef SOURCE_CODE_URL
-  #define SOURCE_CODE_URL SRC_FILE_NAME       
+  #define SOURCE_CODE_URL SRC_NAME_SHORT       
 #endif
 
 /**
