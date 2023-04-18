@@ -58,6 +58,7 @@ void GcodeSuite::G12() {
                 strokes = parser.ushortval('S', NOZZLE_CLEAN_STROKES),
                 objects = parser.ushortval('T', NOZZLE_CLEAN_TRIANGLES);
   const float radius = parser.linearval('R', NOZZLE_CLEAN_CIRCLE_RADIUS);
+  const float fixed_z = parser.linearval('F', 0);   //TG 4/12/23 F specifies a fixed static Z position, if 'F' not present then default to 0
 
   const bool seenxyz = parser.seen("XYZ");
   const uint8_t cleans =  (!seenxyz || parser.boolval('X') ? _BV(X_AXIS) : 0)
@@ -72,7 +73,7 @@ void GcodeSuite::G12() {
 
   SET_SOFT_ENDSTOP_LOOSE(!parser.boolval('E'));
 
-  nozzle.clean(pattern, strokes, radius, objects, cleans);
+  nozzle.clean(pattern, strokes, radius, objects, cleans, fixed_z);  //TG 4/12/23 fixed_z specifies a fixed static Z position
 
   SET_SOFT_ENDSTOP_LOOSE(false);
 }

@@ -148,10 +148,14 @@ Nozzle nozzle;
    * @param pattern one of the available patterns
    * @param argument depends on the cleaning pattern
    */
-  void Nozzle::clean(const uint8_t &pattern, const uint8_t &strokes, const float &radius, const uint8_t &objects, const uint8_t cleans) {
+  void Nozzle::clean(const uint8_t &pattern, const uint8_t &strokes, const float &radius, const uint8_t &objects, const uint8_t cleans, const float &fixed_z) {
     xyz_pos_t start[HOTENDS] = NOZZLE_CLEAN_START_POINT, end[HOTENDS] = NOZZLE_CLEAN_END_POINT, middle[HOTENDS] = NOZZLE_CLEAN_CIRCLE_MIDDLE;
 
     const uint8_t arrPos = ANY(SINGLENOZZLE, MIXING_EXTRUDER) ? 0 : active_extruder;
+
+    if (fixed_z > 0){   //TG 4/12/23 added to set the Z axis position to a fixed value supplied from G12 call. If fixed_z is zero, then ignore
+      start[arrPos].z = end[arrPos].z = fixed_z;
+    }
 
     #if HAS_SOFTWARE_ENDSTOPS
 

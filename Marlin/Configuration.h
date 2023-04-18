@@ -132,7 +132,7 @@
 #endif
 
 // Name displayed in the LCD "Ready" message and Info menu
-#define CUSTOM_MACHINE_NAME "SWX1 103120"  //TG 10/24/20
+#define CUSTOM_MACHINE_NAME "SWX1 041723"  //TG 04/17/23
 
 // Printer's unique ID, used by some programs to differentiate between machines.
 // Choose your own or use a service like https://www.uuidgenerator.net/version4
@@ -755,7 +755,7 @@
  * Override with M203
  *                                      X, Y, Z, E0 [, E1[, E2...]]
  */
-#define DEFAULT_MAX_FEEDRATE          { 300, 300, 20, 40 }  //TG 10/24/2020 changed Z feedrate from 7 to 40 for 2mm leadscrews & TMC2209
+#define DEFAULT_MAX_FEEDRATE          { 400, 400, 20, 40 }  //TG 10/24/2020 changed Z feedrate from 7 to 40 for 2mm leadscrews & TMC2209, 04/17/23 upped XY to 400
                                                             //could probably go up to 40 in Spreadcycle mode by increasing TMC2209 current
 //#define LIMITED_MAX_FR_EDITING        // Limit edit via M203 or LCD to DEFAULT_MAX_FEEDRATE * 2
 #if ENABLED(LIMITED_MAX_FR_EDITING)
@@ -1012,7 +1012,7 @@
 #define PROBING_MARGIN 10
 
 // X and Y axis travel speed (mm/min) between probes
-#define XY_PROBE_SPEED (300 * 60) //TG 6/03/2020 Increased probe speed
+#define XY_PROBE_SPEED (450 * 60) //TG 6/03/2020 Increased probe speed, 04/17/23 was 300
 
 // Feedrate (mm/min) for the first approach when double-probing (MULTIPLE_PROBING == 2)
 #define Z_PROBE_SPEED_FAST HOMING_FEEDRATE_Z
@@ -1046,10 +1046,10 @@
  * Example: `M851 Z-5` with a CLEARANCE of 4  =>  9mm from bed to nozzle.
  *     But: `M851 Z+1` with a CLEARANCE of 2  =>  2mm from bed to nozzle.
  */
-#define Z_CLEARANCE_DEPLOY_PROBE   10 // Z Clearance for Deploy/Stow
-#define Z_CLEARANCE_BETWEEN_PROBES  5 // Z Clearance between probe points
-#define Z_CLEARANCE_MULTI_PROBE     5 // Z Clearance between multiple probes
-#define Z_AFTER_PROBING            10 //TG 10/26/20 Z position after probing is done
+#define Z_CLEARANCE_DEPLOY_PROBE   7 // Z Clearance for Deploy/Stow  //TG 4/17/23 was 10
+#define Z_CLEARANCE_BETWEEN_PROBES  7 // Z Clearance between probe points //TG 4/17/23 was 5
+#define Z_CLEARANCE_MULTI_PROBE     7 // Z Clearance between multiple probes //TG 4/17/23 was 5
+#define Z_AFTER_PROBING            7 //TG 10/26/20 Z position after probing is done //TG 4/17/23 was 10
 
 #define Z_PROBE_LOW_POINT          -2 // Farthest distance below the trigger-point to go before stopping
 
@@ -1144,7 +1144,7 @@
 
 // The size of the print bed
 #define X_BED_SIZE 310  //TG 10/26/20
-#define Y_BED_SIZE 310  //TG 10/26/20
+#define Y_BED_SIZE 295  //TG 10/26/20, 4/17/23 reduced from 310 to prevent ABL from crshing into Nozzle cleaning brush at X=34, Y=308
 
 // Travel limits (mm) after homing, corresponding to endstop positions.
 #define X_MIN_POS -7  //TG 06/03/2020 changed from -2 to -7, to adjust for nozzle position change between Stock and BMG V6 combo
@@ -1413,8 +1413,8 @@
 #endif
 
 // Homing speeds (mm/min)
-#define HOMING_FEEDRATE_XY (100*60) //TG 12/19/2019 per Waggster Mod, but 16% faster(70) (stock SWX1 was 80)
-#define HOMING_FEEDRATE_Z  (16*60) //TG 12/19/2019 per Waggster Mod, but 16% faster(18) (stock SWX1 was 20), 03/02/2020 changed from 18 to 7 for 2mm lead screws
+#define HOMING_FEEDRATE_XY (120*60) //TG 12/19/2019 per Waggster Mod, but 16% faster(70) (stock SWX1 was 80), 04/17/23 was 100
+#define HOMING_FEEDRATE_Z  (20*60)  //TG 12/19/2019 per Waggster Mod, but 16% faster(18) (stock SWX1 was 20), 03/02/2020 changed from 18 to 7 for 2mm lead screws, 04/17/23 back to 20, was 16
 
 // Validate that endstops are triggered on homing moves
 #define VALIDATE_HOMING_ENDSTOPS
@@ -1617,22 +1617,22 @@
  *   Caveats: The ending Z should be the same as starting Z.
  * Attention: EXPERIMENTAL. G-code arguments may change.
  */
-//#define NOZZLE_CLEAN_FEATURE
+#define NOZZLE_CLEAN_FEATURE  //TG 4/12/23 was commented out
 
 #if ENABLED(NOZZLE_CLEAN_FEATURE)
   // Default number of pattern repetitions
-  #define NOZZLE_CLEAN_STROKES  12
+  #define NOZZLE_CLEAN_STROKES  2   //TG 4/12/23 was 12
 
   // Default number of triangles
-  #define NOZZLE_CLEAN_TRIANGLES  3
+  #define NOZZLE_CLEAN_TRIANGLES  4  //TG 4/12/23 was 3
 
   // Specify positions for each tool as { { X, Y, Z }, { X, Y, Z } }
   // Dual hotend system may use { {  -20, (Y_BED_SIZE / 2), (Z_MIN_POS + 1) },  {  420, (Y_BED_SIZE / 2), (Z_MIN_POS + 1) }}
-  #define NOZZLE_CLEAN_START_POINT { {  30, 30, (Z_MIN_POS + 1) } }
-  #define NOZZLE_CLEAN_END_POINT   { { 100, 60, (Z_MIN_POS + 1) } }
+  #define NOZZLE_CLEAN_START_POINT { {  34, 309, (Z_MIN_POS + 4) } }   //TG 4/12/23 Z position can be overridden with 'F' parameter in G12 command
+  #define NOZZLE_CLEAN_END_POINT   { { 70, 315, (Z_MIN_POS + 4) } }    //TG 4/12/23 Z position can be overridden with 'F' parameter in G12 command
 
   // Circular pattern radius
-  #define NOZZLE_CLEAN_CIRCLE_RADIUS 6.5
+  #define NOZZLE_CLEAN_CIRCLE_RADIUS 4.5	//TG 4/12/23 was 6.5
   // Circular pattern circle fragments number
   #define NOZZLE_CLEAN_CIRCLE_FN 10
   // Middle point of circle

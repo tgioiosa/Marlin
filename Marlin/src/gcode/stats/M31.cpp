@@ -30,7 +30,7 @@
  * M31: Get the time since the start of SD Print (or last M109)
  */
 void GcodeSuite::M31() {
-  char buffer[24];  //TG changed was 21
+  char buffer[22];  //TG changed was 21
   duration_t(print_job_timer.duration()).toString(buffer);
 
   ui.set_status(buffer);
