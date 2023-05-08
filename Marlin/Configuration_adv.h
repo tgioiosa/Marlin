@@ -3990,10 +3990,11 @@
  */
 #define HOST_ACTION_COMMANDS  		//TG 1/9/2020 enabled for TFT35
 #if ENABLED(HOST_ACTION_COMMANDS)	//TG 1/9/2020 enabled for TFT35
-  #define HOST_PAUSE_M76			Tell the host to pause in response to M76
+  #define HOST_PAUSE_M76			  //Tell the host to pause in response to M76
   #define HOST_PROMPT_SUPPORT		//TG 1/9/2020 enabled for TFT35 Initiate host prompts to get user feedback
   #if ENABLED(HOST_PROMPT_SUPPORT)
-    //#define HOST_STATUS_NOTIFICATIONS   // Send some status messages to the host as notifications
+    #define HOST_STATUS_NOTIFICATIONS   // Send some status messages to the host as notifications
+                                        //TG note the LCD may double post some m117 messages when printing from SD card!
   #endif
   #define HOST_START_MENU_ITEM      // Add a menu item that tells the host to start
   #define HOST_SHUTDOWN_MENU_ITEM   // Add a menu item that tells the host to shut down

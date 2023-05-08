@@ -92,6 +92,7 @@ void HostUI::action(FSTR_P const fstr, const bool eol) {
     extern bool wait_for_user;
   #endif
 
+  //TG sends "action:notification string EOL"
   void HostUI::notify(const char * const cstr) {
     PORT_REDIRECT(SerialMask::All);
     action(F("notification "), false);
@@ -104,13 +105,14 @@ void HostUI::action(FSTR_P const fstr, const bool eol) {
     SERIAL_ECHOLNPGM_P(pstr);
   }
 
+  //TG sends "prompt_" appended with ptype i.e. prompt_begin, prompt_end, prompt_show,...etc
   void HostUI::prompt(FSTR_P const ptype, const bool eol/*=true*/) {
     PORT_REDIRECT(SerialMask::All);
     action(F("prompt_"), false);
     SERIAL_ECHOF(ptype);
     if (eol) SERIAL_EOL();
   }
-
+  //TG sends "prompt_ptype str", with string added
   void HostUI::prompt_plus(const bool pgm, FSTR_P const ptype, const char * const str, const char extra_char/*='\0'*/) {
     prompt(ptype, false);
     PORT_REDIRECT(SerialMask::All);
@@ -122,10 +124,10 @@ void HostUI::action(FSTR_P const fstr, const bool eol) {
     if (extra_char != '\0') SERIAL_CHAR(extra_char);
     SERIAL_EOL();
   }
-
+  //TG sends "prompt_end" followed by "prompt_begin string"
   void HostUI::prompt_begin(const PromptReason reason, FSTR_P const fstr, const char extra_char/*='\0'*/) {
     prompt_end();
-    host_prompt_reason = reason;
+    host_prompt_reason = reason;  //TG sets the reason which can be checked when the host responds in handle_response()
     prompt_plus(F("begin"), fstr, extra_char);
   }
   void HostUI::prompt_begin(const PromptReason reason, const char * const cstr, const char extra_char/*='\0'*/) {
@@ -137,15 +139,18 @@ void HostUI::action(FSTR_P const fstr, const bool eol) {
   void HostUI::prompt_end() { prompt(F("end")); }
   void HostUI::prompt_show() { prompt(F("show")); }
 
+  //TG sends "prompt_button string1", "prompt_button string2", and "prompt_show"
   void HostUI::_prompt_show(FSTR_P const btn1, FSTR_P const btn2) {
-    if (btn1) prompt_button(btn1);
-    if (btn2) prompt_button(btn2);
+    if (btn1) prompt_button(btn1);  //TG sends "prompt_button string"
+    if (btn2) prompt_button(btn2);  //TG sends "prompt_button string"
     prompt_show();
   }
 
   void HostUI::prompt_button(FSTR_P const fstr) { prompt_plus(F("button"), fstr); }
   void HostUI::prompt_button(const char * const cstr) { prompt_plus(F("button"), cstr); }
-
+  
+  //TG these send "prompt_end", "prompt_begin string", "prompt_button string1", 
+  //   "prompt_button string2", and "prompt_show"
   void HostUI::prompt_do(const PromptReason reason, FSTR_P const fstr, FSTR_P const btn1/*=nullptr*/, FSTR_P const btn2/*=nullptr*/) {
     prompt_begin(reason, fstr);
     _prompt_show(btn1, btn2);
@@ -163,6 +168,7 @@ void HostUI::action(FSTR_P const fstr, const bool eol) {
     _prompt_show(btn1, btn2);
   }
 
+  
   #if ENABLED(ADVANCED_PAUSE_FEATURE)
     void HostUI::filament_load_prompt() {
       const bool disable_to_continue = TERN0(HAS_FILAMENT_SENSOR, runout.filament_ran_out);
@@ -205,7 +211,7 @@ void HostUI::action(FSTR_P const fstr, const bool eol) {
             break;
         }
         break;
-      case PROMPT_USER_CONTINUE:
+      case PROMPT_USER_CONTINUE:  //TG Continue button for M0/M1 displayed on host
         TERN_(HAS_RESUME_CONTINUE, wait_for_user = false);
         break;
       case PROMPT_PAUSE_RESUME:

@@ -46,8 +46,9 @@
 #include "../../module/vfd.h"
 #include "../../feature/spindle_laser.h"
 #include "../../module/motion.h"
+#include "../../feature/host_actions.h"
 
-char Msg[92];   //TG 12/27/22 increased from 60, for use in some of the code below that needs a buffer
+char Msg[120];   //TG 12/27/22 increased from 60, for use in some of the code below that needs a buffer
 
 #if ENABLED(AVR_TRIAC_CONTROLLER) //TG 12/16/22 only if using AVR Triac Controller
 AVRINFOTYPE AVRInfoBlock;
@@ -235,20 +236,27 @@ uint16_t get_chksum()
   always to the TFT no matter what source sent the M7986 Rx. The PORT_REDIRECT macro let's us temporarily
   switch where the serial output will be directed.
 */
-void GcodeSuite::M7986() {     
+void GcodeSuite::M7986() {
+  float stockTop = 0, stockTopNative = 0;     
     if(parser.seenval('S')){   // S=Stock_Top from print gcode (already corrected for probe thickness)
-    // echo printer-sent value as Stock_Top and native machine Zmax to TFT immediately, TFT will not ask
-    sprintf(Msg,"M7986 T%3.2f Z%3.2f ok\n", parser.value_float(), (float)Z_MAX_POS);
+    // echo gcode file-sent value as Stock_Top and native machine Zmax to TFT immediately, TFT will not ask
+    sprintf(Msg,"M7986 T%6.3f Z%6.3f ok\n", parser.value_float(), (float)Z_MAX_POS);
     PORT_REDIRECT(SERIAL_PORTMASK(SERIAL_PORT));  // ensure we send to the TFT (in case source was not the TFT)
     SERIAL_ECHOPGM(Msg);
     }
-    if(parser.seenval('R')){   // R=Get Stock_Top from current Z pos plus probe thickess(value after R)
+    if(parser.seenval('R')){   // R=Get Stock_Top from current Z pos minus any probe thickess(value after R)
+    stockTop = (float)current_position.z - parser.value_float();
     // echo current Z position as Stock_Top and native machine Zmax to TFT immediately, TFT will not ask
-    sprintf(Msg,"M7986 T%3.2f Z%3.2f ok\n", (float)current_position.z + parser.value_float(), (float)Z_MAX_POS);
+    sprintf(Msg,"M7986 T%6.3f Z%6.3f ok\n", stockTop, (float)Z_MAX_POS);
     PORT_REDIRECT(SERIAL_PORTMASK(SERIAL_PORT));  // ensure we send to the TFT (in case source was not the TFT)
     SERIAL_ECHOPGM(Msg);
-    }  
-}
+    } 
+    if(parser.seen('P')){ //TG 3/24/23 added to show the stock position as an //action:prompt, no buttons
+      stockTopNative = stockTop - (float)Z_MIN_POS; 
+      sprintf(Msg, "     Current Z: %7.3f             STOCK_POS: %7.3f             Z_MAX_POS: %7.3f             Z_MIN_POS: %7.3f ", stockTop, stockTopNative, (float)Z_MAX_POS, (float)Z_MIN_POS);
+      hostui.prompt_do(PROMPT_INFO, (const char *const)Msg, (FSTR_P)NULL,(FSTR_P)NULL);
+    }
+  }
 
 #if ENABLED(VFD_CONTROLLER)			 //TG 12/16/22 only if using VFD controller
 

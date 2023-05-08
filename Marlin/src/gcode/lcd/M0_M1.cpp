@@ -58,8 +58,12 @@ void GcodeSuite::M0_M1() {
   #if HAS_MARLINUI_MENU
 
     if (parser.string_arg)
+    //TG put string_arg into status_message (27 chars max), and if HOST_STATUS_NOTIFICATIONS
+    //is enabled send the full string to "action:notification 'string_arg' + EOL"
       ui.set_status(parser.string_arg, true);
     else {
+      //TG put "Click to Resume..." into status_message, and if HOST_STATUS_NOTIFICATIONS
+      //is enabled send the full string to "action:notification 'string_arg' + EOL"
       LCD_MESSAGE(MSG_USERWAIT);
       #if ENABLED(LCD_PROGRESS_BAR) && PROGRESS_MSG_EXPIRE > 0
         ui.reset_progress_bar_timeout();
@@ -86,9 +90,18 @@ void GcodeSuite::M0_M1() {
   #endif
 
   #if ENABLED(HOST_PROMPT_SUPPORT)
+    char msgbuf[70];  //TG 3/16/23 added
+    //TG send "prompt_end","prompt_begin 'string_arg'","prompt_button 'Continue'",["prompt_button string2"],and "prompt_show"
     if (parser.string_arg)
-      hostui.prompt_do(PROMPT_USER_CONTINUE, parser.string_arg, FPSTR(CONTINUE_STR));
+    {
+      hostui.prompt_do(PROMPT_USER_CONTINUE, parser.string_arg, FPSTR(CONTINUE_STR)); //TG original code
+      
+      //sprintf(msgbuf,"%s %s\n",parser.codenum ? "M1 Stop" : "M0 Stop",parser.string_arg);  //TG 3/16/23 added
+      //hostui.pause(true);
+      //hostui.prompt_do(PROMPT_USER_CONTINUE, msgbuf, FPSTR(CONTINUE_STR));
+    }
     else
+      //TG send "prompt_end","prompt_begin 'M0 Stop'","prompt_button 'Continue'",["prompt_button string2"],and "prompt_show"
       hostui.prompt_do(PROMPT_USER_CONTINUE, parser.codenum ? F("M1 Stop") : F("M0 Stop"), FPSTR(CONTINUE_STR));
   #endif
 

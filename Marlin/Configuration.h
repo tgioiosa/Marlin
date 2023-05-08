@@ -1118,7 +1118,7 @@
 #define USE_XMIN_PLUG
 #define USE_YMIN_PLUG
 #define USE_ZMIN_PLUG   //TG 9/30/2022 for MPCNC probing down or 3d printer homing / BL Touch probing down
-//#define USE_IMIN_PLUG
+//#define USE_IMIN_PLUG //   also used when G38 probing down, the probe plate connects here
 //#define USE_JMIN_PLUG
 //#define USE_KMIN_PLUG
 //#define USE_UMIN_PLUG
@@ -1126,7 +1126,7 @@
 //#define USE_WMIN_PLUG
 #define USE_XMAX_PLUG	//TG 12/30/2020
 #define USE_YMAX_PLUG	//TG 12/30/2020
-#define USE_ZMAX_PLUG   //TG 9/30/2022  for MPCNC homing up 
+#define USE_ZMAX_PLUG //TG 9/30/2022  for MPCNC homing up sensor connects here 
 //#define USE_IMAX_PLUG
 //#define USE_JMAX_PLUG
 //#define USE_KMAX_PLUG
@@ -1786,11 +1786,11 @@
 // Travel limits (linear=mm, rotational=°) after homing, corresponding to endstop positions.
 #define X_MIN_POS 0
 #define Y_MIN_POS 0
-#define Z_MIN_POS -65 //TG 9/30/2022 min travel of MPCNC (w/15.7mm tool length) just hits spoilboard 
-                      //if Z Homing down(normal 3D) use 0, if Z Homing up(new MPCNC) use -65
+#define Z_MIN_POS -70 //TG 3/28/23 min travel of MPCNC (limited by MPCNC design)) 
+                      //if Z Homing down(normal 3D) use 0, if Z Homing up(new MPCNC) use -70
 #define X_MAX_POS X_BED_SIZE
 #define Y_MAX_POS Y_BED_SIZE
-#define Z_MAX_POS 0	  //TG 9/30/2022 max travel of MPCNC before rail tube rises past lower bearings 
+#define Z_MAX_POS 0	  //TG 3/28/23 max travel of MPCNC before rail tube rises past lower bearings 
                       //if Z Homing up(new MPCNC) use 0, if Z Homing down(normal 3D) use 65
 
 //#define I_MIN_POS 0
