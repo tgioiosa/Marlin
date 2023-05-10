@@ -70,7 +70,7 @@ class Nozzle {
 
   #if ENABLED(NOZZLE_CLEAN_FEATURE)
 
-    /**
+    /** TG 5/9/23 added fixed_z parameter
      * @brief Clean the nozzle
      * @details Starts the selected clean procedure pattern
      *

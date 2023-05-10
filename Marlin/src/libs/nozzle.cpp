@@ -141,7 +141,7 @@ Nozzle nozzle;
     TERN_(NOZZLE_CLEAN_GOBACK, do_blocking_move_to(back));
   }
 
-  /**
+  /** TG 5/9/23 added fixed_z parameter
    * @brief Clean the nozzle
    * @details Starts the selected clean procedure pattern
    *
