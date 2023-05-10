@@ -954,6 +954,9 @@ void Endstops::update() {
         // When closing the gap check the enabled probe
         #if USE_Z_MIN_PROBE
           if (z_probe_enabled) PROCESS_ENDSTOP(Z, MIN_PROBE);
+          #ifdef USE_ZMIN_ENDSTOP_AS_BACKUP_PROBE_ENDSTOP  /* TG 10/24/20 added */
+            PROCESS_ENDSTOP_Z(MIN); //TG added 10/26/20 to also check hard endstop in case probe fails to trigger
+          #endif
         #endif
       }
       else { // Z +direction. Gantry up, bed down.

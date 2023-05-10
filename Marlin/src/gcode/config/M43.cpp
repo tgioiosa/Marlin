@@ -166,17 +166,23 @@ inline void servo_probe_test() {
       SERIAL_ECHOLNPGM(". Check for BLTOUCH");
       bltouch._reset();
       bltouch._stow();
+      SERIAL_ECHOLNPGM(". Z_MIN_PROBE_PIN state: ", int(READ(PROBE_TEST_PIN))); //TG 10/26/20 added
       if (READ(PROBE_TEST_PIN) != probe_hit_state) {
         bltouch._set_SW_mode();
         if (READ(PROBE_TEST_PIN) == probe_hit_state) {
           bltouch._deploy();
           if (READ(PROBE_TEST_PIN) != probe_hit_state) {
             bltouch._stow();
+            SERIAL_ECHOLNPGM(". store probe");  //TG 10/26/20 added
             SERIAL_ECHOLNPGM("= BLTouch Classic 1.2, 1.3, Smart 1.0, 2.0, 2.2, 3.0, 3.1 detected.");
             // Check for a 3.1 by letting the user trigger it, later
             blt = true;
         }
       }
+    }
+    else{
+      SERIAL_ECHOLNPGM(". ERROR-PROBE state not ", int(probe_hit_state)); //TG 10/26/20 added
+      SERIAL_ECHOLNPGM(". Check Probe wiring for continuity - might be open!");  //TG 10/26/20 added
     }
     #endif
 

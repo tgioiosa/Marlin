@@ -28,6 +28,7 @@
 #include "../inc/MarlinConfig.h"
 #include "../HAL/shared/servo.h"
 
+
 #if HAS_SERVO_ANGLES
 
   #if ENABLED(SWITCHING_EXTRUDER)

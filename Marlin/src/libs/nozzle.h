@@ -70,14 +70,14 @@ class Nozzle {
 
   #if ENABLED(NOZZLE_CLEAN_FEATURE)
 
-    /**
+    /** TG 5/9/23 added fixed_z parameter
      * @brief Clean the nozzle
      * @details Starts the selected clean procedure pattern
      *
      * @param pattern one of the available patterns
      * @param argument depends on the cleaning pattern
      */
-    static void clean(const uint8_t pattern, const uint8_t strokes, const_float_t radius, const uint8_t objects, const uint8_t cleans) __Os;
+    static void clean(const uint8_t &pattern, const uint8_t &strokes, const float &radius, const uint8_t &objects, const uint8_t cleans, const float &fixed_z) __Os;
 
   #endif // NOZZLE_CLEAN_FEATURE
 

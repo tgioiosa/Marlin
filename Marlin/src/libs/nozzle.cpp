@@ -157,21 +157,24 @@ Nozzle nozzle;
     }
   #endif
 
-  /**
+  /** TG 5/9/23 added fixed_z parameter
    * @brief Clean the nozzle
    * @details Starts the selected clean procedure pattern
    *
    * @param pattern one of the available patterns
    * @param argument depends on the cleaning pattern
    */
-  void Nozzle::clean(const uint8_t pattern, const uint8_t strokes, const_float_t radius, const uint8_t objects, const uint8_t cleans) {
+    void Nozzle::clean(const uint8_t &pattern, const uint8_t &strokes, const float &radius, const uint8_t &objects, const uint8_t cleans, const float &fixed_z) {
     xyz_pos_t start[HOTENDS] = NOZZLE_CLEAN_START_POINT, end[HOTENDS] = NOZZLE_CLEAN_END_POINT;
     #if ENABLED(NOZZLE_CLEAN_PATTERN_CIRCLE)
       xyz_pos_t middle[HOTENDS] = NOZZLE_CLEAN_CIRCLE_MIDDLE;
     #endif
 
     const uint8_t arrPos = EITHER(SINGLENOZZLE, MIXING_EXTRUDER) ? 0 : active_extruder;
-
+    if (fixed_z > 0){   //TG 4/12/23 added to set the Z axis position to a fixed value supplied from G12 call. If fixed_z is zero, then ignore
+      start[arrPos].z = end[arrPos].z = fixed_z;
+    }
+    
     switch (pattern) {
       #if DISABLED(NOZZLE_CLEAN_PATTERN_LINE)
         case 0: SERIAL_ECHOLNPGM("Pattern ", F("LINE"), " not enabled."); return;

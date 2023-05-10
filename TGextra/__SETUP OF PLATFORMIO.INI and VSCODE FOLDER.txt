@@ -1,0 +1,18 @@
+To have consistent successful compile and debug of a Marlin Project do the following:
+
+in c_cpp_properties.json make sure the libdeps folder is envname_DEBUG and not RELEASE, as below
+
+"c:/Users/tony/Documents/CNC/MAINBOARD/MKS-SGEN/Marlin-2.0.9.2-100321-SGEN/.pio/libdeps/LPC1769_DEBUG/U8glib-HAL/src"
+
+in launch.json make sure the executable and projectEnvName properties are also envname_DEBUG and not RELEASE, as below
+
+"executable": "c:/Users/tony/Documents/CNC/MAINBOARD/MKS-SGEN/Marlin-2.0.9.2-100321-SGEN/.pio/build/LPC1769_DEBUG/firmware.elf",
+"projectEnvName": "LPC1769_DEBUG",
+
+Also, be sure to have modified Marlin\buildroot\share\PlatformIO\scripts\common-cxxflags.py for the /debug folder fix!
+
+
+For release binary build as RELEASE
+For Debug outputs build as DEBUG
+
+Use the RUN> PIO Debug toolbar to debug a connected target (NOTE: any previous .pio\build\envname_RELEASE folder will be deleted) 
