@@ -41,6 +41,19 @@
 //============================= Getting Started =============================
 //===========================================================================
 
+//***** NOTES FOR RUNNING WITH PLATFORMIO DEBUGGER *****************************************************
+//
+// To be able to debug in real time you have to take the following 3 steps because the timing loops seem
+// to get affected with the larger debug code running, resulting in over-temp kills and also WDT resets!
+//
+//  1- in Configuration.h, disable THERMAL_PROTECTION_HOTENDS and THERMAL_PROTECTION_BED
+//  2- in Configuration_adv.h, disable USE_WATCHDOG
+//  3- in lpc1769_sgen.ini, set "debug_build_flags = -g -O1 -ggdb3 -DDEBUG" to lower the debug
+//     level from g3 and to do some minimal optimization (-O1 instead of -O0), otherwise the
+//     .bin file will be over 92% of flash and the code won't run correctly or crash randomly!
+// 
+//***** NOTES FOR RUNNING WITH PLATFORMIO DEBUGGER *****************************************************
+
 /**
  * Here are some useful links to help get your machine configured and calibrated:
  *
@@ -1554,10 +1567,10 @@
 #define PROBING_MARGIN 10
 
 // X and Y axis travel speed (mm/min) between probes
-#define XY_PROBE_FEEDRATE (450 * 60) //TG 6/03/2020 Increased probe speed, 04/17/23 was 133
+#define XY_PROBE_FEEDRATE (400 * 60) //TG 6/03/2020 Increased probe speed, 04/17/23 was 133
 
 // Feedrate (mm/min) for the first approach when double-probing (MULTIPLE_PROBING == 2)
-#define Z_PROBE_FEEDRATE_FAST (20*60)  //TG 5/9/23  was 4*60
+#define Z_PROBE_FEEDRATE_FAST (16 * 60)  //TG 5/9/23  was 4*60
 
 // Feedrate (mm/min) for the "accurate" probe of each point
 #define Z_PROBE_FEEDRATE_SLOW (Z_PROBE_FEEDRATE_FAST / 2)
@@ -1607,7 +1620,7 @@
  * A total of 2 does fast/slow probes with a weighted average.
  * A total of 3 or more adds more slow probes, taking the average.
  */
-//#define MULTIPLE_PROBING 2
+#define MULTIPLE_PROBING 2
 //#define EXTRA_PROBING    1
 
 /**
@@ -1625,8 +1638,8 @@
  *     But: `M851 Z+1` with a CLEARANCE of 2  =>  2mm from bed to nozzle.
  */
 #define Z_CLEARANCE_DEPLOY_PROBE    7 // Z Clearance for Deploy/Stow  //TG 4/17/23 was 10
-#define Z_CLEARANCE_BETWEEN_PROBES  7 // Z Clearance between probe points //TG 4/17/23 was 5
-#define Z_CLEARANCE_MULTI_PROBE     7 // Z Clearance between multiple probes //TG 4/17/23 was 5
+#define Z_CLEARANCE_BETWEEN_PROBES  5 // Z Clearance between probe points //TG 4/17/23 was 5
+#define Z_CLEARANCE_MULTI_PROBE     5 // Z Clearance between multiple probes //TG 4/17/23 was 5
 #define Z_AFTER_PROBING             7 //TG 10/26/20 Z position after probing is done //TG 4/17/23 was 10
 
 #define Z_PROBE_LOW_POINT          -2 // Farthest distance below the trigger-point to go before stopping
@@ -2059,7 +2072,7 @@
 #if EITHER(AUTO_BED_LEVELING_LINEAR, AUTO_BED_LEVELING_BILINEAR)
 
   // Set the number of grid points per dimension.
-  #define GRID_MAX_POINTS_X 7 //TG 10/23/20 using BLT
+  #define GRID_MAX_POINTS_X 5 //TG 10/23/20 using BLT
   #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
 
   // Probe along the Y axis, advancing X after each column
@@ -2229,7 +2242,7 @@
 // Homing speeds (linear=mm/min, rotational=°/min)
 //TG 12/19/2019 per Waggster Mod, but 16% faster(70) (stock SWX1 was 80), 04/17/23 was 100
 //TG 12/19/2019 per Waggster Mod, but 16% faster(18) (stock SWX1 was 20), 03/02/2020 changed from 18 to 7 for 2mm lead screws, 04/17/23 back to 20, was 16
-#define HOMING_FEEDRATE_MM_M { (120*60), (120*60), (20*60) }
+#define HOMING_FEEDRATE_MM_M { (100*60), (100*60), (10*60) }
 
 // Validate that endstops are triggered on homing moves
 #define VALIDATE_HOMING_ENDSTOPS

@@ -736,7 +736,7 @@ float Probe::run_z_probe(const bool sanity_check/*=true*/, const_float_t z_min_p
     // Tare the probe, if supported
     if (TERN0(PROBE_TARE, tare())) return true;
 
-    // Do a first probe at the fast speed
+    // Do a FIRST probe at the fast speed
     const bool probe_fail = probe_down_to_z(z_probe_low_point, fr_mm_s),              // No probe trigger?
                early_fail = (scheck && current_position.z > zoffs + error_tolerance); // Probe triggered too high?
     #if ENABLED(DEBUG_LEVELING_FEATURE)
@@ -779,7 +779,7 @@ float Probe::run_z_probe(const bool sanity_check/*=true*/, const_float_t z_min_p
     if (current_position.z > z) {
       // Probe down fast. If the probe never triggered, raise for probe clearance
       if (!probe_down_to_z(z, z_probe_fast_mm_s))
-        do_z_clearance(z_clearance);
+        do_z_clearance(z_clearance);    //TG move probe to z_clearance(usually 10)
     }
   #endif
 
@@ -934,7 +934,7 @@ float Probe::probe_at_point(const_float_t rx, const_float_t ry, const ProbePtRai
     if (bltouch.high_speed_mode && bltouch.triggered()) bltouch._reset();
   #endif
 
-  // Use a safe Z height for the XY move
+  // Use a safe Z height for the XY move  //TG gets the higher of current Z or z_clearance(usually 10)
   const float safe_z = _MAX(current_position.z, z_clearance);
 
   // On delta keep Z below clip height or do_blocking_move_to will abort
@@ -955,7 +955,7 @@ float Probe::probe_at_point(const_float_t rx, const_float_t ry, const ProbePtRai
   }
   if (DEBUGGING(LEVELING)) DEBUG_ECHOLNPGM(" point");
 
-  // Move the probe to the starting XYZ
+  // Move the probe to the starting XYZ  //TG -note moves probe to minimum of safe_z=(z_clearance(usually 10))
   do_blocking_move_to(npos, feedRate_t(XY_PROBE_FEEDRATE_MM_S));
 
   #if ENABLED(BD_SENSOR)
@@ -964,6 +964,7 @@ float Probe::probe_at_point(const_float_t rx, const_float_t ry, const ProbePtRai
 
   #else // !BD_SENSOR
 
+    //TG command probe deploy, if failed set measured_z to NAN, else do a measurement
     float measured_z = deploy() ? NAN : run_z_probe(sanity_check, z_min_point, z_clearance) + offset.z;
 
     // Deploy succeeded and a successful measurement was done.
@@ -973,9 +974,9 @@ float Probe::probe_at_point(const_float_t rx, const_float_t ry, const ProbePtRai
         default: break;
         case PROBE_PT_RAISE:
           if (raise_after_is_relative)
-            do_z_clearance(current_position.z + z_clearance, false);
+            do_z_clearance(current_position.z + z_clearance, false);  //TG raise up from current by z_clearance(usually 10)
           else
-            do_z_clearance(z_clearance);
+            do_z_clearance(z_clearance);                              //TG just raise to z_clearance(usually 10)
           break;
         case PROBE_PT_STOW: case PROBE_PT_LAST_STOW:
           if (stow()) measured_z = NAN;   // Error on stow?

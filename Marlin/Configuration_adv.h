@@ -1077,7 +1077,7 @@
 
   // Define from 3 to 9 points to probe.
   //#define TRAMMING_POINT_XY { {  20, 20 }, { 180,  20 }, { 180, 180 }, { 20, 180 } }
-  #define TRAMMING_POINT_XY { {  44, 44 }, { 204,  44 }, { 204, 204 }, { 44, 204 } }  //TG 5/10/23
+  #define TRAMMING_POINT_XY { {  44, 44 }, { 204,  44 }, { 204, 204 }, { 44, 204 } }  //TG 5/10/23 modified to stop TRAMMING unreachable error
 
   // Define position names for probe points.
   #define TRAMMING_POINT_NAME_1 "Front-Left"
@@ -3152,7 +3152,7 @@
    * When disabled, Marlin will use spreadCycle stepping mode.
    */
   #if HAS_STEALTHCHOP
-    #define STEALTHCHOP_XY    //TG 10/26/20 XY Stealthchop (2209) can go to 200 mm/sec, Spreadcycle can go up to 900 mm/sec
+    //#define STEALTHCHOP_XY  //TG 10/26/20 XY Stealthchop (2209) can go to 200 mm/sec, Spreadcycle can go up to 900 mm/sec
     //#define STEALTHCHOP_Z   //TG 10/26/20 Z  Stealthchop (2209) can go to 12 mm/sec(gets very noisy), Spreadcycle can go to 85 mm/sec 
     #define STEALTHCHOP_I
     #define STEALTHCHOP_J
