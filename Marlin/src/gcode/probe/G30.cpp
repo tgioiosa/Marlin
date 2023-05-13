@@ -92,7 +92,7 @@ void GcodeSuite::G30() {
 
     restore_feedrate_and_scaling();
 
-    do_blocking_move_to(old_pos);
+    //do_blocking_move_to(old_pos); //TG 5/12/23 ***** THIS IS ACTING WEIRD WHY IS IT HERE?
 
     if (raise_after == PROBE_PT_STOW)
       probe.move_z_after_probing();

@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -145,7 +145,9 @@ MediaFile CardReader::file;
 uint32_t CardReader::filesize, CardReader::sdpos;
 
 CardReader::CardReader() {
-#pragma GCC diagnostic push                         //TG save GCC state of warnings
+// The 'GCC diagnostic ignored pragma' makes this effective ONLY for this source file. If the "-Wclass-memaccess" were
+// added in platformio.ini it would affect all files in the project, and this particular "-Wclass-memaccess" can only
+// be used with .cpp files, not .c files (there are still some .c files in Marlin and this would cause many more errors).#pragma GCC diagnostic push                         //TG save GCC state of warnings
 #pragma GCC diagnostic ignored "-Wclass-memaccess"  //TG added to suppress memset() warnings here only 
   changeMedia(&
     #if HAS_USB_FLASH_DRIVE && !SHARED_VOLUME_IS(SD_ONBOARD)

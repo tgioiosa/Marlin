@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -118,6 +118,7 @@ struct ForwardSerial : public SerialBase< ForwardSerial<SerialT> > {
 
   SerialT & out;
   NO_INLINE size_t write(uint8_t c) { return out.write(c); }
+  size_t write(char* src, size_t length) { return out.write(src, length);}  //TG 3/9/23 added back - bugfix-2.1.x had removed it
   void flush()            { out.flush();  }
   void begin(long br)     { out.begin(br); }
   void end()              { out.end(); }
@@ -131,6 +132,7 @@ struct ForwardSerial : public SerialBase< ForwardSerial<SerialT> > {
   int read(serial_index_t)      { return (int)out.read(); }
   int available()               { return (int)out.available(); }
   int read()                    { return (int)out.read(); }
+  bool TXbufferEmpty()          { return (int)out.TXbufferEmpty();}   //TG 12/16/22-returns 0 if TX empty
   SerialFeature features(serial_index_t index) const  { return CALL_IF_EXISTS(SerialFeature, &out, features, index);  }
 
   ForwardSerial(const bool e, SerialT & out) : BaseClassT(e), out(out) {}

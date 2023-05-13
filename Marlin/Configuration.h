@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -50,7 +50,7 @@
 //  2- in Configuration_adv.h, disable USE_WATCHDOG
 //  3- in lpc1769_sgen.ini, set "debug_build_flags = -g -O1 -ggdb3 -DDEBUG" to lower the debug
 //     level from g3 and to do some minimal optimization (-O1 instead of -O0), otherwise the
-//     .bin file will be over 92% of flash and the code won't run correctly or crash randomly!
+//     .bin file will be over 92% of flash and the code won't run correctly and may crash randomly!
 // 
 //***** NOTES FOR RUNNING WITH PLATFORMIO DEBUGGER *****************************************************
 
@@ -73,7 +73,7 @@
 // @section info
 
 // Author info of this build printed to the host during boot and M115
-#define STRING_CONFIG_H_AUTHOR "Tony Gioiosa v2.1.x 5/9/23" //TG 10/24/20 Who made the changes.
+#define STRING_CONFIG_H_AUTHOR "Tony Gioiosa v2.1.x 5/9/23" //TG 5/11/23 Who made the changes.
 //#define CUSTOM_VERSION_FILE Version.h // Path from the root directory (no quotes)
 
 // @section machine
@@ -114,7 +114,7 @@
  * :[-2, -1, 0, 1, 2, 3, 4, 5, 6, 7]
  */
 #define SERIAL_PORT_2 -1    //TG 10/23/20 this will make USBSerial get used
-#define BAUDRATE_2 250000   // :[2400, 9600, 19200, 38400, 57600, 115200, 250000, 500000, 1000000] Enable to override BAUDRATE
+//#define BAUDRATE_2 250000   // :[2400, 9600, 19200, 38400, 57600, 115200, 250000, 500000, 1000000] Enable to override BAUDRATE
 
 /**
  * Select a third serial port on the board to use for communication with the host.
@@ -668,7 +668,7 @@
 
 // Enable PIDTEMP for PID control or MPCTEMP for Predictive Model.
 // temperature control. Disable both for bang-bang heating.
-#define PIDTEMP          // See the PID Tuning Guide at https://reprap.org/wiki/PID_Tuning
+#define PIDTEMP          //TG 5/11/23 See the PID Tuning Guide at https://reprap.org/wiki/PID_Tuning
 //#define MPCTEMP        // ** EXPERIMENTAL **
 
 #define BANG_MAX 255     // Limits current to nozzle while in bang-bang mode; 255=full current
@@ -872,11 +872,12 @@
  * details can be tuned in Configuration_adv.h
  */
 
-#define THERMAL_PROTECTION_HOTENDS // Enable thermal protection for all extruders
-#define THERMAL_PROTECTION_BED     // Enable thermal protection for the heated bed
-#define THERMAL_PROTECTION_CHAMBER // Enable thermal protection for the heated chamber
-#define THERMAL_PROTECTION_COOLER  // Enable thermal protection for the laser cooling
-
+#if DISABLED(DEBUG)  //TG 5/12/23 added this to allow debugging, otherwise temperature overruns!
+  #define THERMAL_PROTECTION_HOTENDS // Enable thermal protection for all extruders
+  #define THERMAL_PROTECTION_BED     // Enable thermal protection for the heated bed
+  #define THERMAL_PROTECTION_CHAMBER // Enable thermal protection for the heated chamber
+  #define THERMAL_PROTECTION_COOLER  // Enable thermal protection for the laser cooling
+#endif
 //===========================================================================
 //============================= Mechanical Settings =========================
 //===========================================================================
@@ -1159,12 +1160,12 @@
  * Endstop "Hit" State
  * Set to the state (HIGH or LOW) that applies to each endstop.
  */
-#define X_MIN_ENDSTOP_HIT_STATE LOW   //TG 10/23/20 Set to LOW - SWX1 endstops are active low (inverting)
-#define X_MAX_ENDSTOP_HIT_STATE HIGH
-#define Y_MIN_ENDSTOP_HIT_STATE LOW   //TG 10/23/20 Set to LOW - SWX1 endstops are active low (inverting)
-#define Y_MAX_ENDSTOP_HIT_STATE HIGH
-#define Z_MIN_ENDSTOP_HIT_STATE LOW   //TG 10/23/20 Set to LOW - SWX1 endstops are active low (inverting)
-#define Z_MAX_ENDSTOP_HIT_STATE HIGH  //TG 10/23/20 Set to LOW - SWX1 endstops are active low (inverting)
+#define X_MIN_ENDSTOP_HIT_STATE LOW   //TG 10/23/20 Set to LOW - SWX1 endstops go active low when triggered
+#define X_MAX_ENDSTOP_HIT_STATE LOW
+#define Y_MIN_ENDSTOP_HIT_STATE LOW   //TG 10/23/20 Set to LOW - SWX1 endstops go active low when triggered
+#define Y_MAX_ENDSTOP_HIT_STATE LOW
+#define Z_MIN_ENDSTOP_HIT_STATE LOW   //TG 10/23/20 Set to LOW - SWX1 endstops go active low when triggered
+#define Z_MAX_ENDSTOP_HIT_STATE LOW   //TG 10/23/20 Set to LOW - SWX1 endstops go active low when triggered
 #define I_MIN_ENDSTOP_HIT_STATE HIGH
 #define I_MAX_ENDSTOP_HIT_STATE HIGH
 #define J_MIN_ENDSTOP_HIT_STATE HIGH
@@ -1177,7 +1178,7 @@
 #define V_MAX_ENDSTOP_HIT_STATE HIGH
 #define W_MIN_ENDSTOP_HIT_STATE HIGH
 #define W_MAX_ENDSTOP_HIT_STATE HIGH
-#define Z_MIN_PROBE_ENDSTOP_HIT_STATE HIGH  //TG 10/23/20 set HIGH - BLT is active high (non-inverting)
+#define Z_MIN_PROBE_ENDSTOP_HIT_STATE HIGH  //TG 10/23/20 set HIGH - BLT goes active high when triggered
 
 // Enable this feature if all enabled endstop pins are interrupt-capable.
 // This will remove the need to poll the interrupt pins, saving many CPU cycles.
@@ -1570,7 +1571,7 @@
 #define XY_PROBE_FEEDRATE (400 * 60) //TG 6/03/2020 Increased probe speed, 04/17/23 was 133
 
 // Feedrate (mm/min) for the first approach when double-probing (MULTIPLE_PROBING == 2)
-#define Z_PROBE_FEEDRATE_FAST (16 * 60)  //TG 5/9/23  was 4*60
+#define Z_PROBE_FEEDRATE_FAST (7 * 60)  //TG 5/9/23  was 4*60
 
 // Feedrate (mm/min) for the "accurate" probe of each point
 #define Z_PROBE_FEEDRATE_SLOW (Z_PROBE_FEEDRATE_FAST / 2)
@@ -2691,7 +2692,7 @@
 // Add individual axis homing items (Home X, Home Y, and Home Z) to the LCD menu.
 //
 #define INDIVIDUAL_AXIS_HOMING_MENU //TG 10/23/20 enabled
-//#define INDIVIDUAL_AXIS_HOMING_SUBMENU
+#define INDIVIDUAL_AXIS_HOMING_SUBMENU  //TG 10/23/20 enabled
 
 //
 // SPEAKER/BUZZER
@@ -3543,6 +3544,7 @@
 
 // Edit servo angles with M281 and save to EEPROM with M500
 //#define EDITABLE_SERVO_ANGLES
+#define SHORT_BUILD_VERSION "107T 2.1.x (bugfix) "
 
 // Disable servo with M282 to reduce power consumption, noise, and heat when not in use
 //#define SERVO_DETACH_GCODE

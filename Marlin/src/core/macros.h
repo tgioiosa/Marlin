@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -332,6 +332,7 @@
 
 #define LOOP_S_LE_N(VAR, S, N) for (uint8_t VAR=(S); VAR<=(N); VAR++)
 #define LOOP_S_L_N(VAR, S, N) for (uint8_t VAR=(S); VAR<(N); VAR++)
+#define LOOP_INT_S_L_N(VAR, S, N) for (int8_t VAR=(S); VAR<(N); VAR++)    //TG 10/2/22 - added to allow loop with negative index
 #define LOOP_LE_N(VAR, N) LOOP_S_LE_N(VAR, 0, N)
 #define LOOP_L_N(VAR, N) LOOP_S_L_N(VAR, 0, N)
 

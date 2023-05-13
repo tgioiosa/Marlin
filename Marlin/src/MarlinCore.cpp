@@ -1,4 +1,4 @@
-/**
+/** //TG MODIFIED BY T.GIOIOSA
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
@@ -1542,7 +1542,8 @@ void setup() {
     SETUP_RUN(est_init());
   #endif
 
-  #if ENABLED(USE_WATCHDOG)
+  //TG 1/30/21 disable watchdog if DEBUG defined in platformio.ini build_flags
+  #if ENABLED(USE_WATCHDOG) && DISABLED(DEBUG)
     SETUP_RUN(hal.watchdog_init());   // Reinit watchdog after hal.get_reset_source call
   #endif
 
