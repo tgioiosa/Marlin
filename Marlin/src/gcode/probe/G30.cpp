@@ -50,34 +50,48 @@
  */
 void GcodeSuite::G30() {
 
-  xy_pos_t old_pos = current_position,
+  xy_pos_t old_pos = current_position,  //TG start with current position as default
            probepos = current_position;
-
+report_current_position(); 
+  //TG  If X,Y supplied, convert given logical position to native position (override default)
   const bool seenX = parser.seenval('X');
   if (seenX) probepos.x = RAW_X_POSITION(parser.value_linear_units());
   const bool seenY = parser.seenval('Y');
   if (seenY) probepos.y = RAW_Y_POSITION(parser.value_linear_units());
 
-  probe.use_probing_tool();
+  probe.use_probing_tool(); //TG call to avoid tool-changes if probing multiple points
+
+    // Convert the given logical position to native position
+  const xy_pos_t pos = {
+    parser.seenval('X') ? RAW_X_POSITION(parser.value_linear_units()) : current_position.x,
+    parser.seenval('Y') ? RAW_Y_POSITION(parser.value_linear_units()) : current_position.y
+  };
 
   if (probe.can_reach(probepos)) {
-
-    if (seenX) old_pos.x = probepos.x;
-    if (seenY) old_pos.y = probepos.y;
-
+    //TG 5/13/23 **** with these 2 linescommented out the "set probe offset" behaves like
+    // it used to, instead of putting nozzle at 2X the probe offset(51,-39) when ready
+    // although the "level corners" run now returns to center after each corner is done
+    // instead of jumping back to corner pos - probe offset(51,-39) for each corner
+    // NEED TO RESOLVE THIS OR MAYBE MODIFY TFT35 CODE TO FIX ????????????
+    //if (seenX) old_pos.x = probepos.x;
+    //if (seenY) old_pos.y = probepos.y;
+  
     // Disable leveling so the planner won't mess with us
     TERN_(HAS_LEVELING, set_bed_leveling_enabled(false));
-
+    //TG temporarily remove any feedrate multiplier
     remember_feedrate_scaling_off();
 
     TERN_(DWIN_CREALITY_LCD_JYERSUI, process_subcommands_now(F("G28O")));
-
+    //TG stow probe after or not?
     const ProbePtRaise raise_after = parser.boolval('E', true) ? PROBE_PT_STOW : PROBE_PT_NONE;
-
+    //TG enable probe temperature compensation?
     TERN_(HAS_PTC, ptc.set_enabled(!parser.seen('C') || parser.value_bool()));
-    const float measured_z = probe.probe_at_point(probepos, raise_after);
+    
+    //TG do a Z-probe at the current position
+    const float measured_z = probe.probe_at_point(probepos, raise_after, 1);
     TERN_(HAS_PTC, ptc.set_enabled(true));
-    if (!isnan(measured_z)) {
+    
+    if (!isnan(measured_z)) {  //TG if successful report coordinates now
       SERIAL_ECHOLNPGM("Bed X: ", probepos.asLogical().x, " Y: ", probepos.asLogical().y, " Z: ", measured_z);
       #if EITHER(DWIN_LCD_PROUI, DWIN_CREALITY_LCD_JYERSUI)
         char msg[31], str_1[6], str_2[6], str_3[6];
@@ -90,21 +104,23 @@ void GcodeSuite::G30() {
       #endif
     }
 
-    restore_feedrate_and_scaling();
+    restore_feedrate_and_scaling(); //TG restore any feedrate multiplier
 
-    //do_blocking_move_to(old_pos); //TG 5/12/23 ***** THIS IS ACTING WEIRD WHY IS IT HERE?
+    //TG 5/12/23 ***** THIS IS ACTING WEIRD WHY IS IT HERE?
+    // it causes the position to go back to old_pos after a probe at probepos ?????
+    //do_blocking_move_to(old_pos); 
 
     if (raise_after == PROBE_PT_STOW)
-      probe.move_z_after_probing();
+      probe.move_z_after_probing(); //TG move z-axis to Z_AFTER_PROBING position
 
-    report_current_position();
+    report_current_position();      // report position info
   }
-  else {
+  else { //TG tried to probe past bed limits
     SERIAL_ECHOLNF(GET_EN_TEXT_F(MSG_ZPROBE_OUT));
-    LCD_MESSAGE(MSG_ZPROBE_OUT);
+    LCD_MESSAGE(MSG_ZPROBE_OUT);  //TG send a host::notify message
   }
 
-  probe.use_probing_tool(false);
+  probe.use_probing_tool(false);  //TG reset this state
 }
 
 #endif // HAS_BED_PROBE
