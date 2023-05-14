@@ -140,19 +140,22 @@ void GcodeSuite::M48() {
   };
 
   // Move to the first point, deploy, and probe
+  ui.status_printf(0, F(S_FMT ""), "Testing deploy first...");  //TG 5/14/23 added this message
   const float t = probe.probe_at_point(test_position, raise_after, verbose_level);
   bool probing_good = !isnan(t);
 
   if (probing_good) {
     randomSeed(millis());
-
+    ui.status_printf(0, F(S_FMT " - will run %d samples"), "Probe good", int(n_samples));  //TG 5/14/23 added this message
     float sample_sum = 0.0;
 
     LOOP_L_N(n, n_samples) {
-      #if HAS_STATUS_MESSAGE
-        // Display M48 progress in the status bar
-        ui.status_printf(0, F(S_FMT ": %d/%d"), GET_TEXT(MSG_M48_POINT), int(n + 1), int(n_samples));
-      #endif
+
+//TG 5/14/23 moved this message down till after probed value is retrieved, so it can be printed as well
+//      #if HAS_STATUS_MESSAGE
+//        // Display M48 progress in the status bar
+//        ui.status_printf(0, F(S_FMT ": %d/%d"), GET_TEXT(MSG_M48_POINT), int(n + 1), int(n_samples));
+//      #endif
 
       // When there are "legs" of movement move around the point before probing
       if (n_legs) {
@@ -232,6 +235,12 @@ void GcodeSuite::M48() {
       // Store the new sample
       sample_set[n] = pz;
 
+      //TG 5/14/23 moved this message here so probed value pz can be printed as well
+      #if HAS_STATUS_MESSAGE
+        // Display M48 progress in the status bar
+        ui.status_printf(0, F(S_FMT ": %d/%d  %1.4f"), GET_TEXT(MSG_M48_POINT), int(n + 1), int(n_samples), pz);
+      #endif
+
       // Keep track of the largest and smallest samples
       NOMORE(min, pz);
       NOLESS(max, pz);
@@ -270,7 +279,7 @@ void GcodeSuite::M48() {
       ui.status_printf(0, F(S_FMT ": %s"), GET_TEXT(MSG_M48_DEVIATION), dtostrf(sigma, 2, 6, sigma_str));
     #endif
   }
-
+      
   restore_feedrate_and_scaling();
 
   // Re-enable bed level correction if it had been on
