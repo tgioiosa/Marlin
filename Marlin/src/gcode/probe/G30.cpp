@@ -50,8 +50,8 @@
  */
 void GcodeSuite::G30() {
 
-  xy_pos_t old_pos = current_position,  //TG start with current position as default
-           probepos = current_position;
+  //xy_pos_t old_pos = current_position;  //TG 5/15/23 not needed cause removed returning to oldpos below 
+  xy_pos_t probepos = current_position; //TG start with current position as default
 report_current_position(); 
   //TG  If X,Y supplied, convert given logical position to native position (override default)
   const bool seenX = parser.seenval('X');

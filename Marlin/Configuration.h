@@ -1621,7 +1621,7 @@
  * A total of 2 does fast/slow probes with a weighted average.
  * A total of 3 or more adds more slow probes, taking the average.
  */
-#define MULTIPLE_PROBING 2
+#define MULTIPLE_PROBING 0
 //#define EXTRA_PROBING    1
 
 /**
@@ -2243,7 +2243,7 @@
 // Homing speeds (linear=mm/min, rotational=°/min)
 //TG 12/19/2019 per Waggster Mod, but 16% faster(70) (stock SWX1 was 80), 04/17/23 was 100
 //TG 12/19/2019 per Waggster Mod, but 16% faster(18) (stock SWX1 was 20), 03/02/2020 changed from 18 to 7 for 2mm lead screws, 04/17/23 back to 20, was 16
-#define HOMING_FEEDRATE_MM_M { (100*60), (100*60), (10*60) }
+#define HOMING_FEEDRATE_MM_M { (80*60), (80*60), (7*60) }
 
 // Validate that endstops are triggered on homing moves
 #define VALIDATE_HOMING_ENDSTOPS
@@ -2449,6 +2449,8 @@
 
   // Specify positions for each tool as { { X, Y, Z }, { X, Y, Z } }
   // Dual hotend system may use { {  -20, (Y_BED_SIZE / 2), (Z_MIN_POS + 1) },  {  420, (Y_BED_SIZE / 2), (Z_MIN_POS + 1) }}
+  //TG - the Z position defaults here to 4mm above bed surface. You can specify the 'F' parameter 
+  //when calling G12 to force a fixed Z-level of your choice, it will override the default!
   #define NOZZLE_CLEAN_START_POINT { {  34, 309, (Z_MIN_POS + 4) } }   //TG 4/12/23 Z position can be overridden with 'F' parameter in G12 command
   #define NOZZLE_CLEAN_END_POINT   { { 70, 315, (Z_MIN_POS + 4) } }    //TG 4/12/23 Z position can be overridden with 'F' parameter in G12 command
   
@@ -2459,8 +2461,8 @@
   #endif
 
   // Move the nozzle to the initial position after cleaning
-  #define NOZZLE_CLEAN_GOBACK
-
+  //#define NOZZLE_CLEAN_GOBACK   //TG 5/16/23 turned off to let TFT decide go-back position so it can call
+                                  //G12 multiple times in succession without Marlin doing go-back each time
   // For a purge/clean station that's always at the gantry height (thus no Z move)
   //#define NOZZLE_CLEAN_NO_Z
 

@@ -21,7 +21,7 @@
  */
 
 #include "../inc/MarlinConfig.h"
-
+#include "../../src/lcd/marlinui.h"   //TG 5/15/23 added so LCD_MESSAGE macro can be used
 #if EITHER(NOZZLE_CLEAN_FEATURE, NOZZLE_PARK_FEATURE)
 
 #include "nozzle.h"
@@ -195,6 +195,7 @@ Nozzle nozzle;
           thermalManager.wait_for_hotend(arrPos);
         #else
           SERIAL_ECHOLNPGM("Nozzle too cold - Skipping wipe");
+          LCD_MESSAGE_F("Nozzle too cold - Skipping wipe");   //TG 5/15/23 added
           return;
         #endif
       }
