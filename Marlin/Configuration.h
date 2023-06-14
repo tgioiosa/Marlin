@@ -148,6 +148,8 @@
 
 // @section stepper drivers
 
+#define NO_AUTO_ASSIGN_WARNING    //TG 5/10/23 this suppresses auto-assign warnings
+#define DIAG_PINS_REMOVED         //TG 5/10/23 suppresses 'Driver DIAG pins must be physically removed...' for 2209 drivers
 /**
  * Stepper Drivers
  *
@@ -1185,9 +1187,9 @@
 #endif
 
 // Mechanical endstop with COM to ground and NC to Signal uses "false" here, goes high when activated (most common setup).
-#define X_MIN_ENDSTOP_INVERTING false 	//TG 12/30/2020 Set to true to invert the logic of the endstop.
-#define Y_MIN_ENDSTOP_INVERTING false 	//TG 12/30/2020 Set to true to invert the logic of the endstop.
-#define Z_MIN_ENDSTOP_INVERTING true 	  //TG 3/5/2021 Zmin switch wired NO, closes to ground when activated
+#define X_MIN_ENDSTOP_INVERTING false 	//TG 12/30/2020 the CNC endstops are NC and go high when triggered
+#define Y_MIN_ENDSTOP_INVERTING false 	//TG 12/30/2020 the CNC endstops are NC and go high when triggered
+#define Z_MIN_ENDSTOP_INVERTING true 	  //TG 3/5/2021   Zmin switch is wired NO, closes to ground when triggered
 #define I_MIN_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
 #define J_MIN_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
 #define K_MIN_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
@@ -1203,7 +1205,7 @@
 #define U_MAX_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
 #define V_MAX_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
 #define W_MAX_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
-#define Z_MIN_PROBE_ENDSTOP_INVERTING true 	//TG 3/5/2021 Zmin switch wired NO, closes to ground when activated
+#define Z_MIN_PROBE_ENDSTOP_INVERTING true //TG 3/5/2021 Zmin switch is wired NO, closes to ground when triggered
 
 
 // Enable this feature if all enabled endstop pins are interrupt-capable.
@@ -2568,7 +2570,7 @@
  * SD Card support is disabled by default. If your controller has an SD slot,
  * you must uncomment the following option or it won't work.
  */
-#define SDSUPPORT
+#define SDSUPPORT  //TG 10/23/20
 
 /**
  * SD CARD: ENABLE CRC
