@@ -164,11 +164,15 @@ constexpr ena_mask_t enable_overlap[] = {
     TERN_(INPUT_SHAPING_Y, shaping_echo_t y:2);
   };
 
+  //TG 6/9/23 added attr to times[] and echo_axes[] arrays to direct compiler to place them in the extra RAM area1 of the LPC1769.
+  //There's two extra 16K RAM areas, first one is used by USB. The second one is optional for Ethernet. Since we don't use Ethernet
+  //we can use this extra RAM.
+  //This is done cause the buffers use a lot of RAM to get decent input shaping results.
   class ShapingQueue {
     private:
       static shaping_time_t       now;
-      static shaping_time_t       times[shaping_echoes];
-      static shaping_echo_axis_t  echo_axes[shaping_echoes];
+      static shaping_time_t       times[shaping_echoes] __attribute__((section("AHBSRAM1"),aligned));      //TG 6/9/23 - added attr to place in ETH RAM
+      static shaping_echo_axis_t  echo_axes[shaping_echoes] __attribute__((section("AHBSRAM1"),aligned));  //TG 6/9/23 - added attr to place in ETH RAM
       static uint16_t             tail;
 
       #if ENABLED(INPUT_SHAPING_X)

@@ -687,10 +687,10 @@
     #define DEFAULT_Ki_LIST {   1.08,   1.08 }
     #define DEFAULT_Kd_LIST { 114.00, 114.00 }
   #else
-    //TG Sidewinder X1 measured on 6/4/20 V6 Hot End
-    #define DEFAULT_Kp 30.51
-    #define DEFAULT_Ki  2.91
-    #define DEFAULT_Kd 79.99
+    //TG Sidewinder X1 measured on 6/10/23 V6 Hot End (no silicone sock)
+    #define DEFAULT_Kp 33.02
+    #define DEFAULT_Ki  3.08
+    #define DEFAULT_Kd 88.39
   #endif
 #endif
 
@@ -772,11 +772,11 @@
   //#define MIN_BED_POWER 0
   //#define PID_BED_DEBUG // Print Bed PID debug data to the serial port.
   
-  //120V 250W silicone heater into 4mm borosilicate (TG Sidewinder X1 measured 6/4/20)
+  //120V 250W silicone heater on Fulabed 4mm aluminum + PEI plate(TG Sidewinder X1 measured 6/10/23)
   //TG from PID Tuning run 6/4/20
-  #define DEFAULT_bedKp 81.17
-  #define DEFAULT_bedKi 4.70
-  #define DEFAULT_bedKd 350.74
+  #define DEFAULT_bedKp 14.72
+  #define DEFAULT_bedKi 2.66
+  #define DEFAULT_bedKd 54.32
         
   // FIND YOUR OWN: "M303 E-1 C8 S90" to run autotune on the bed at 90 degreesC for 8 cycles.
 #endif // PIDTEMPBED
@@ -1235,8 +1235,9 @@
  * Override with M203
  *                                      X, Y, Z [, I [, J [, K...]]], E0 [, E1[, E2...]]
  */
-#define DEFAULT_MAX_FEEDRATE          { 400, 400, 20, 40 }  //TG 10/24/2020 changed Z feedrate from 7 to 40 for 2mm leadscrews & TMC2209, 04/17/23 upped XY to 40
+#define DEFAULT_MAX_FEEDRATE          { 1000, 1000, 20, 40 }//TG 10/24/2020 changed Z feedrate from 7 to 40 for 2mm leadscrews & TMC2209, 04/17/23 upped XY to 40
                                                             //could probably go up to 40 in Spreadcycle mode by increasing TMC2209 current
+                                                            //TG 6/10/23 changed X,Y to 1000 (was 400)
 
 //#define LIMITED_MAX_FR_EDITING        // Limit edit via M203 or LCD to DEFAULT_MAX_FEEDRATE * 2
 #if ENABLED(LIMITED_MAX_FR_EDITING)
@@ -1250,7 +1251,8 @@
  *                                      X, Y, Z [, I [, J [, K...]]], E0 [, E1[, E2...]]
  */
 //#define DEFAULT_MAX_ACCELERATION      { 3000, 3000, 100, 10000 }
-#define DEFAULT_MAX_ACCELERATION      { 2000, 2000, 100, 10000 }  //TG 03/02/2020 kept Z accel at 100 after change to 2mm leadscrews
+#define DEFAULT_MAX_ACCELERATION      { 3000, 3000, 100, 10000 }  //TG 03/02/2020 kept Z accel at 100 after change to 2mm leadscrews
+                                                                  //TG 6/10/23 upped X,Y from 2000 to 3000
 
 //#define LIMITED_MAX_ACCEL_EDITING     // Limit edit via M201 or LCD to DEFAULT_MAX_ACCELERATION * 2
 #if ENABLED(LIMITED_MAX_ACCEL_EDITING)
