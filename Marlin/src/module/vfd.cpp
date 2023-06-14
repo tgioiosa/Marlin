@@ -1,25 +1,27 @@
 /** //TG MODIFIED BY T.GIOIOSA
  * 
- * VFD Controller support via UART3 TX/RX which connects to a TTL-to-RS485 adapter to provide Modbus communication
+ * VFD Controller support via LPC1769 UART3 TX/RX which connects to a TTL-to-RS485 adapter to provide Modbus communication
  * 
- * Serial UART routines based on defining and using the LCD_SERIAL_PORT name.
- * To begin, we need a UART to talk to the VFD and UART3 is the only UART left available on the SGEN board.
+ * We need a UART to talk to the VFD over an RS485 interface to the VFD with Modbus protocol. 
+ * On the SGEN LPC1769 board UART3(P0_0,P0_1) is the only UART left available.
+ * You may need to find other available UART and pins on other boards.
  * 
- * Stock Marlin defines SERIAL_PORT , SERIAL_PORT_2, and SERIAL_PORT_3 as possibleUART objects.
+ * Stock Marlin defines SERIAL_PORT , SERIAL_PORT_2, and SERIAL_PORT_3 as possible UART objects.
  * SERIAL_PORT is the main serial port on the board to use for communication with a host, and is = 0 usually the TFT port.
  * SERIAL_PORT_2 is a secondary serial port on the board to use for communication with a host and is = -1 the USB port.
  * SERIAL_PORT_3 is not assigned in stock Marlin, although it could be used for a serial LCD or an MMU device.
  * 
  * Each of the above three names(if defined) will get assembled into a MultiSerial object (see serial.h and serial_hook.h)
- * The MultiSerial object replicates output to all three ports but can selectively mask each one to hide the others, however
- * all G-Code parsing and output work through this MultiSerial object.
+ * The MultiSerial object replicates output to all three ports but can selectively mask each one to hide the others, however, all
+ * G-Code parsing and output work through this MultiSerial object. This also means that data on these ports is forwarded to
+ * the gcode parser and makes it difficult to receive and use incoming bytes for other purposes(protocols).
  * 
  * For that reason we can't use the identifier SERIAL_PORT_3 for isolated communication to a connected device. We need the
  * channel to work with that device exclusively, and not in a shared situation (where all G-Code transactions will get mixed
  * in with device-only intended communication).
  * 
- * Instead use the identifier LCD_SERIAL_PORT. It doesn't get included into the MultiSerial object, so it can be isolated
- * to exclusive communication to/from a connected device).
+ * Instead we can use the identifier LCD_SERIAL_PORT or MMU2_SERIAL_PORT. These don't get included into the MultiSerial object,
+ * and can be isolated to exclusive communication to/from a connected device).
  * 
  * Assigning a port number to LCD_SERIAL_PORT creates MSerial3 (as an instance of the ForwardSerial class) that 
  * references an instance of MarlinSerial named _MSerial3 using LPC_UART3, which inherits class HardwareSerial
@@ -37,47 +39,47 @@
 #include <src/sd/cardreader.h>
 
 // write/read buffers for Modbus serial
-byte mbCommandMsg[maxCommandMsgSize] = {0};     
+byte mbCommandMsg[maxCommandMsgSize] = {0}; 	// dynamic arrays    
 byte mbResponseMsg[maxResponseMsgSize] = {0};   
-byte mbCommandLen = 0;
+byte mbCommandLen = 0;												// hold the size of the arrays(can change dynamically)
 byte mbResponseLen = 0;
 
-bool tftPrinting = false;					// this flag is received from TFT to indicate if it is printing from SD
+bool tftPrinting = false;					// this flag is received from TFT35 to indicate if it is printing from SD
 bool VFDpresent = false;					// this flag is set from MarlinCore call to initialReadVFD() below
-bool statusPollingAllowed = true;	// used to block getVFDStatus if needed
-byte VFD_precision = 0;						// will be either 10 or 100, read at startup
+bool statusPollingAllowed = true;	// used to block the getVFDStatus() routine if needed
+byte VFD_precision = 0;						// will be either 10 or 100, read at startup from the VFD
 uint16_t sw_ver;
 uint16_t cpu_ver;
 iregBits inputReg;								// struct containing frequencies, voltages, current, temp, etc.
 uint32_t next_status_time;				// interval that the status function will execute at
 byte VFDstatusbyte;
 
-// This code gets called from the MarliCore.cpp idle() loop. It will only execute every 10 secconds when
-// printing, or every 2 seconds when not printing. It always tests the VFDpresent flag first, if false
-// then try to re-connect. If unsuccessful, just exit till next interval.
+// This code gets called from the MarliCore.cpp idle() loop. It will only execute every 10 secconds when printing,
+// or every 2 seconds when not printing. It always tests the VFDpresent flag first, if false then try to re-connect.
+// If unsuccessful, just exit till next interval.
 // If VFDpresent flag is true, then VFD status is read into VFDstatusbyte and decoded, followed by reading
 // the VFD input registers and placing that data into inputReg structure. 
-// An M7987 msg with all status data is then sent to the TFT so it can refresh it's data.
-// If at any time the VFDpresent flag goes false, on next entry here we'll try to re-connect(stopping the motor)
-// and will keep trying to re-connect. Once the VFD reconnects, status reading continues. Otherwise no status
-// reading will be done until the VFD is connected, and the status reading will be skipped.
+// An M7987 msg(custom defined gcode) with all status data is then sent to the TFT35 so it can refresh it's data.
+// If at any time the VFDpresent flag goes false, on next entry here we'll try to re-connect(stopping the VFD motor)
+// and will keep trying to re-connect. Once the VFD reconnects, status reading resumes, otherwise no status
+// reading will be done until the VFD is connected (status reading will be skipped).
 void getVFDStatus()
 {
-	bool status;		// holds return flag for any Modbus write commands true if write successful, false otherwise
+	bool status;		// holds return flag for any Modbus write commands, true if write successful, false otherwise
 	static char Msg[96] = {0};		// buffer for sprintf message strings 
 	
-	// do some checking to see if we should run
-	if (!ELAPSED(millis(),next_status_time)) {return;}	// skip and return if not time to run
-	if (statusPollingAllowed == false) {return;}			  // somebody else is using RS485 comm at the moment (this is the only place this flag is tested)
+	// do some checking to see if we should run or exit
+	if (!ELAPSED(millis(),next_status_time)) {return;}	// skip and return if not time to run yet
+	if (statusPollingAllowed == false) {return;}			  // somebody using RS485 comm at the moment (this is the only place this flag is tested)
 	
 	// so far ok, now set up for next run interval
 	bool ANY_PRINTING = (card.flag.sdprinting && !card.flag.abort_sd_printing) || tftPrinting;	//TG state of On-board SD/USB printing or TFT SD/USB printing
-	next_status_time = millis() + (ANY_PRINTING ? 10000UL : 2000UL);																//TG 2/16/23 next interval 10s if printing or 2s if idle
+	next_status_time = millis() + (ANY_PRINTING ? 10000UL : 2000UL);														//TG 2/16/23 next interval 10s if printing or 2s if idle
 
 	// is the VFD connection status still good?
-	if (VFDpresent == false) {													// if VFD disconnected then
-		initialReadVFD(true);															// try to re-connect, might as well stop motor too in case it kept running after disconnect
-		statusPollingAllowed = true;											// allow us to try here again (if initialReadVFD() failed it sets statusPollingAllowed=false)
+	if (VFDpresent == false) {													// if VFD disconnected then...
+		initialReadVFD(true);															// try to re-connect, stops motor too, in case it kept running after disconnect
+		statusPollingAllowed = true;											// allow us to try here again (statusPollingAllowed could =false if initialReadVFD() failed)
 		SERIAL_ECHOPGM(Msg);
 		SERIAL_EOL();
 		if (VFDpresent == false) return;									// leave if still disconnected
@@ -90,7 +92,7 @@ void getVFDStatus()
 	status = writeVevorVFD(VFDnum, MODBUS_READ_HOLD_REG, VEVOR_PARM_ADDR_BITS, 0x0001);
 	if (status==true)
 	{
-		VFDstatusbyte = mbResponseMsg[4];							// status returns as 2 bytes, msb[3] & lsb[4], we want lsb
+		VFDstatusbyte = mbResponseMsg[4];		// status returns as 2 bytes, msb[3] & lsb[4], we want lsb at index=4
 	}
 	else {VFDpresent=false;}							// if the VFD has stopped responding change status to not present
 
@@ -98,13 +100,13 @@ void getVFDStatus()
 	idle();																// allow background hardware tasks to run (prevents comm pile-up)
 	statusPollingAllowed = true;
 
-	// now read the Input Register Area for various operating parameters, adjust for decimal point where needed
-	// request 4 registers starting at Read Holding Register 0220H for Input Registers 0000H-0003FH (freq_out, freq_set, current_out, speed_out)
+	// now read the VFD Input Register Area for various operating parameters, adjust for decimal point where needed. Request 4 registers
+	// starting at VFD Read Holding Register 0220H for Input Registers 0000H-0003FH (freq_out, freq_set, current_out, speed_out)
 	// VFD responds in 16ms with 13-byte msg (5+8 data) at 13.4ms width
 	status = writeVevorVFD(VFDnum, MODBUS_READ_HOLD_REG, VEVOR_INPUT_REG_BITS, 0x0004);
 	if (status==true)
-	{
-		inputReg.freq_out = (mbResponseMsg[3]<<8) + mbResponseMsg[4];
+	{ //convert 2 bytes each to 16-bit values
+		inputReg.freq_out = (mbResponseMsg[3]<<8) + mbResponseMsg[4];	
 		inputReg.freq_set = (mbResponseMsg[5]<<8) + mbResponseMsg[6];
 		inputReg.current_out = (mbResponseMsg[7]<<8) + mbResponseMsg[8];
 		inputReg.speed_out = (mbResponseMsg[9]<<8) + mbResponseMsg[10];	
@@ -144,13 +146,13 @@ void getVFDStatus()
 	idle();																// allow background hardware tasks to run  (prevents comm pile-up)
 	statusPollingAllowed = true;
 
-	// finally send the latest VFD registers and status to TFT
+	// finally, format and send the latest VFD registers and status to TFT35 for display
   sprintf(Msg,"M7987 OF%d SF%d OC%d OR%d DC%d AC%u TP%d LF%d RH%d ST%d DP%d\n", 
           inputReg.freq_out, inputReg.freq_set, inputReg.current_out, inputReg.speed_out,
           inputReg.dc_voltage, inputReg.ac_voltage,inputReg.temperature, inputReg.fault_code,
           inputReg.total_hours, VFDstatusbyte, VFD_precision);
   
-	PORT_REDIRECT(SERIAL_PORTMASK(SERIAL_PORT));    // ensure we send to the TFT (in case source was not the TFT)
+	PORT_REDIRECT(SERIAL_PORTMASK(SERIAL_PORT));    // redirect to ensure we send to the TFT35 (in case source port was not the TFT)
   //PORT_REDIRECT(SerialMask::All);								// for testing output with Pronterface or Repetier send to all serial ports
 	SERIAL_ECHOPGM(Msg);
 	PORT_RESTORE();																	// sets port redirection back to previous value 
@@ -158,11 +160,11 @@ void getVFDStatus()
 
 // Read initial state of VFD and optionally stop the motor if stopMotor=true
 // this gets called by from MarlinCore.cpp idle(), it accomplishes these tasks:
-// 1. stops the VFD motor if possible and if stopMotor parm = true
-// 2. tries to read VFD's decimal precision setting so we know what factor to apply when reading VFD input registers
+// 1. if stopMotor parm = true, stops the VFD motor if possible
+// 2. read VFD's decimal precision setting to know what factor to apply when reading other VFD input registers
 // 3. read the VFD software version
 // 4. read the VFD motor CPU version
-// all steps must be successful for the VFDpresent flag to be set true (and statusPollingAllowed also), if any one
+// ALL steps must be successful for the VFDpresent flag to be set true (and statusPollingAllowed also), if any one
 // step fails(except the first motor Stop attempt), the rest are skipped and the VFDpresent flag is set to
 // false (the statusPollingAllowed flag also stays false).
 // The resulting VFDpresent flag gets sent to the TFT automatically at Temperature::AutoReportTemp::report()
@@ -209,10 +211,10 @@ void initialReadVFD(bool stopMotor)
 	else
 		VFDpresent = false;														// set flag if no VFD responded
 			
-	PORT_REDIRECT(SERIAL_PORTMASK(SERIAL_PORT));  	// ensure we send to the TFT (in case source was not the TFT)
+	PORT_REDIRECT(SERIAL_PORTMASK(SERIAL_PORT));  	// redirect to ensure we send to the TFT35 (in case source port was not the TFT)
 	sprintf(Msg,"M7987 OF0 DP%d\n",VFD_precision);
 	SERIAL_ECHOPGM(Msg);														// setting DP to 255 flags VFD no-response to TFT
-	PORT_RESTORE(); 
+	PORT_RESTORE();																	// sets port redirection back to previous value 
 	    
 }
 
@@ -233,7 +235,7 @@ uint8_t Serial_readNbytes(uint8_t* data, int len){
 
 	if (len > 0) 					// if len > 0, there weren't enough bytes available to read
 		return  len;				// return #bytes that were not read
-	else 									// return success (0) if all bytes sent
+	else 									// return success (0) if all bytes read
 		return 0;
 }
 
@@ -261,7 +263,7 @@ bool writeVevorVFD(byte dev_addr, const byte func, uint16_t param_addr, uint16_t
 		
 	// next, calculate the 16-bit CRC for the above bytes and add them as last two bytes of the array
 	uint16_t crc  = 0xFFFF;
-	byte crclen = mbCommandLen - 2;							// create the CRC, but don't count the 2 bytes for the CRC
+	byte crclen = mbCommandLen - 2;							// create the Modbus CRC, but don't count the 2 bytes for the CRC
 	i=j=0;
 	while(crclen--)
 	{  
@@ -314,6 +316,7 @@ bool writeVevorVFD(byte dev_addr, const byte func, uint16_t param_addr, uint16_t
 }	
 
 
+// TG - Not really used anymore, it is all done in the writeVevorVFD() code above
 // takes an input source array ptr, a dest array ptr, and the src array size and forms a
 // Modbus message into dest array. The array will contain ADDR, SRC BYTES, and calculated CRC 
 uint16_t createModbusMsg(byte *dest, byte cmd, uint16_t parm, uint16_t data)
@@ -332,7 +335,7 @@ uint16_t createModbusMsg(byte *dest, byte cmd, uint16_t parm, uint16_t data)
 	*dest++ = data & 0xFF;
 		
 	dest = destcopy;								// reset dest ptr back to first element
-	totalLen -= 2;									// create the CRC, but don't count the 2 bytes for the CRC
+	totalLen -= 2;									// create the Modbus CRC, but don't count the 2 bytes for the CRC
 	while(totalLen--)
 	{  
 	  crc = crc ^ *dest++;
