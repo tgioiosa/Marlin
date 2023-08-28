@@ -27,6 +27,7 @@
 
 class FilamentWidthSensor {
 public:
+  static int16_t N_FW;              //TG 8/27/23 new avr to hold adc Offset
   static constexpr int MMD_CM = MAX_MEASUREMENT_DELAY + 1, MMD_MM = MMD_CM * 10;
   static bool enabled;              // (M405-M406) Filament Width Sensor ON/OFF.
   static uint32_t accum;            // ADC accumulator
@@ -60,10 +61,15 @@ public:
            ? int(100.0f * nominal_mm / measured_mm) - 100 : 0;
   }
 
-  // Apply a single ADC reading to the raw value
+  // Apply a single ADC reading to the raw value accum
+  //TG 8/11/23 compensate adc value from curve fit of Marlin's value vs actual measurements on the SKR board.
+  //equation was found to be ideal_adc = (Marlin_adc - 16.2293)/1.0096 
+  //Parameter N_FW is an integer offset applied to the adc reading for calibration
+  //The running value of N_FW gets calculated in the TFT35 in the TGMenu and sent
+  //to Marlin to be used here. The value can be re-calibrated whenever necessary.
   static void accumulate(const uint16_t adc) {
     if (adc > 102)  // Ignore ADC under 0.5 volts
-      accum += (uint32_t(adc) << 7) - (accum >> 7);
+      accum += (uint32_t(((float)adc + N_FW)/1.0126) << 7) - (accum >> 7);  //TG new val mult by 128 - prev accum div/128
   }
 
   // Convert raw measurement to mm
@@ -72,8 +78,8 @@ public:
 
   // A scaled reading is ready
   // Divide to get to 0-16384 range since we used 1/128 IIR filter approach
-  static void reading_ready() { raw = accum >> 10; }
-
+  static void reading_ready() { raw = accum >> 14; }  //TG - 6/20/23 shift right into a 16-bit value (div by 65535), 
+                                                      //was >> 10, but needed extra /16 to be correct, so made it >> 14
   // Update mm from the raw measurement
   static void update_measured_mm() { measured_mm = raw_to_mm(); }
 

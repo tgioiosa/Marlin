@@ -66,6 +66,7 @@ void GcodeSuite::M406() {
  */
 void GcodeSuite::M407() {
   SERIAL_ECHOLNPGM("Filament dia (measured mm):", filwidth.measured_mm);
+  SERIAL_ECHOLNPGM("Extrusion ratio:", Planner::volumetric_multiplier[active_extruder]);  //TG 6/28/23 added this
 }
 
 #endif // FILAMENT_WIDTH_SENSOR

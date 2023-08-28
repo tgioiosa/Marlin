@@ -1116,6 +1116,12 @@ void setup() {
   #ifdef FASTIO_INIT
     FASTIO_INIT();
   #endif
+  
+  //TG since the filament sensor reads Vcc and DAC limits after 1 second on power up by sensing it's VO pin, we
+  //must be sure the FILWIDTH_PIN(also connected to VO) is in Hi-Z mode before the filament sensor tries to read.
+  #if defined(FILWIDTH_PIN)             //TG 8/23/23  put ADC pin in input Hi-Z mode as early as possible 
+    SET_MODE(FILWIDTH_PIN, INPUT);      //TG 8/23/23  takes Marlin about 400ms to get here at startup
+  #endif
 
   #ifdef BOARD_PREINIT
     BOARD_PREINIT(); // Low-level init (before serial init)

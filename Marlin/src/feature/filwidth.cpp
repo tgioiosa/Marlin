@@ -39,6 +39,7 @@ uint8_t FilamentWidthSensor::meas_delay_cm = MEASUREMENT_DELAY_CM;      // Dista
 int8_t FilamentWidthSensor::ratios[MAX_MEASUREMENT_DELAY + 1],          // Ring buffer to delay measurement. (Extruder factor minus 100)
        FilamentWidthSensor::index_r,                                    // Indexes into ring buffer
        FilamentWidthSensor::index_w;
+int16_t FilamentWidthSensor::N_FW = 0;                                   //TG 8/27/23 default no adc offset
 
 void FilamentWidthSensor::init() {
   const int8_t ratio = sample_to_size_ratio();

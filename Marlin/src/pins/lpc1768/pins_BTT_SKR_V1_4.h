@@ -192,8 +192,21 @@
   #define E1_CS_PIN                        P1_01
 #endif
 
-#define TEMP_1_PIN                      P0_23_A0  // A0 (T0) - (67) - TEMP_1_PIN
-#define TEMP_BED_PIN                    P0_25_A2  // A2 (T2) - (69) - TEMP_BED_PIN
+
+
+#define TEMP_0_PIN                      P0_24_A1  // AD0.1 (TH0) - (67) - TEMP_0_PIN  (hotend temp sensor)
+#define TEMP_1_PIN                      P0_23_A0  // AD0.0 (TH1) - (67) - TEMP_1_PIN  (on board TH1 not used) 
+#define TEMP_BED_PIN                    P0_25_A2  // AD0.2 (TB) -  (69) - TEMP_BED_PIN (bed temp sensor)
+
+#ifndef FILWIDTH_PIN
+  //#define FILWIDTH_PIN                  P0_23_A0  // AD0.0 (TH1) - (67) - TEMP_1_PIN  (on board TH1 not used) 
+  #define FILWIDTH_PIN                  P0_26_A3  // SPI pin 5, SPI pin 6 = GND SPI pin 2 = +5V  (on board not used)
+#endif                                            // Filament width sensor output = 2.2V DC max
+
+// RAMPS 1.4 DIO 4 on the servos connector
+#ifndef FIL_RUNOUT_PIN
+  #define FIL_RUNOUT_PIN                       4
+#endif
 
 //
 // Default pins for TMC software SPI

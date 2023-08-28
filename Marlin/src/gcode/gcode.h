@@ -304,6 +304,7 @@
  * M951 - Set Magnetic Parking Extruder parameters. (Requires MAGNETIC_PARKING_EXTRUDER)
  * M3426 - Read MCP3426 ADC over I2C. (Requires HAS_MCP3426_ADC)
  * M7219 - Control Max7219 Matrix LEDs. (Requires MAX7219_GCODE)
+ * M7800 - Filament Width Sensor calibration  //TG 8/27/23 added
  *
  *** SCARA ***
  * M360 - SCARA calibration: Move to cal-position ThetaA (0 deg calibration)
@@ -1266,6 +1267,8 @@ private:
   #endif
 
   static void T(const int8_t tool_index);
+
+  static void M7800();  //TG 8/27/23 added for Fil Sensor Cal
 
 };
 

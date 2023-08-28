@@ -1093,6 +1093,8 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
         case 3426: M3426(); break;                                // M3426: Read MCP3426 ADC (over i2c)
       #endif
 
+      case 7800: M7800(); break;    //TG 8/27/23 added for Filament Width Sensor calibration
+
       default: parser.unknown_command_warning(); break;
     }
     break;

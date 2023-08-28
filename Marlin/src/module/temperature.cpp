@@ -4116,6 +4116,10 @@ void Temperature::isr() {
     AutoReporter<Temperature::AutoReportTemp> Temperature::auto_reporter;
     void Temperature::AutoReportTemp::report() {
       print_heater_states(active_extruder OPTARG(HAS_TEMP_REDUNDANT, ENABLED(AUTO_REPORT_REDUNDANT)));
+      #ifdef FILAMENT_WIDTH_SENSOR  //TG 8/12/23 appended Fil Width and Volumetric to AutoReport string
+        SERIAL_ECHOPGM(" FIL: ", filwidth.measured_mm);
+        SERIAL_ECHOPGM(" VOL: ", planner.volumetric_percent(parser.volumetric_enabled));
+      #endif
       SERIAL_EOL();
     }
   #endif
