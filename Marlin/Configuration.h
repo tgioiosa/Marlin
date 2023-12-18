@@ -1789,10 +1789,12 @@
 #define X_MIN_POS 0
 #define Y_MIN_POS 0
 #define Z_MIN_POS -70 //TG 3/28/23 min travel of MPCNC (limited by MPCNC design)) 
-                      //if Z Homing down(normal 3D) use 0, if Z Homing up(new MPCNC) use -70
+                      //if Z Homing down(normal 3D) use 0, if Z Homing up(new MPCNC) use
+                      //MACHINE_ZMAX(-87.50) - spoilboard height(new spoilboard is 19mm) = -68.5
+                      //Current spoilboard was re-faced to 17.5mm, so use -(87.50-17.5) = -70.0 
 #define X_MAX_POS X_BED_SIZE
 #define Y_MAX_POS Y_BED_SIZE
-#define Z_MAX_POS 0	  //TG 3/28/23 max travel of MPCNC before rail tube rises past lower bearings 
+#define Z_MAX_POS 0	  //TG 3/28/23 max travel of MPCNC before rail tube rises past lower bearings(87.5mm) 
                       //if Z Homing up(new MPCNC) use 0, if Z Homing down(normal 3D) use 65
 
 //#define I_MIN_POS 0
