@@ -154,6 +154,7 @@ CardReader::CardReader() {
 // be used with .cpp files, not .c files (there are still some .c files in Marlin and this would cause many more errors).
 #pragma GCC diagnostic push                         //TG save GCC state of warnings
 #pragma GCC diagnostic ignored "-Wclass-memaccess"  //TG added to suppress memset() warnings here only   changeMedia(&
+    changeMedia(&
     #if HAS_USB_FLASH_DRIVE && !SHARED_VOLUME_IS(SD_ONBOARD)
       media_driver_usbFlash
     #else
