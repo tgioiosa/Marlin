@@ -3486,9 +3486,10 @@
     // Marlin sends TARGET_RPM to VFD and Marlin measures RPM sensor(optional). All parameters are exchanged via
     // Serial Comm (UART) pins P0.0(TX3)/P0.1(RX3) of UART3 connected to an RS485 converter to/from the VFD.
     // No PWM is required in Marlin. No PID is used with VFD either. Requires USE_RPM_SENSOR to measure actual RPM.
+    // On Vevor VFD set parameter F163=1(VFD adr)    F164=0(4800),1(9600),2(19200),3(38400)   F165=3(RTU 8N1) 
     #if ENABLED(VFD_CONTROLLER)       // brings in serial comm for USART3 in LPC1769 using LCD_SERIAL object            
       #define LCD_SERIAL_PORT 3       // use LPC1769 UART #3 as it is the only available option, we access it through LCD_SERIAL
-      #define LCD_BAUDRATE 9600       // object (not SERIAL_3 because it's a Multi-Serial with 1 and 2).
+      #define LCD_BAUDRATE VFD_BAUD_RATE   // object (not SERIAL_3 because it's a Multi-Serial with 1 and 2).
     #endif 
     
     //-------------  Enable reading an attached RPM sensor  //TG 12/16/22  ------------------------------------------------------

@@ -94,7 +94,8 @@ void getVFDStatus()
 	{
 		VFDstatusbyte = mbResponseMsg[4];		// status returns as 2 bytes, msb[3] & lsb[4], we want lsb at index=4
 	}
-	else {VFDpresent=false;}							// if the VFD has stopped responding change status to not present
+	else 
+	{VFDpresent=false;}							// if the VFD has stopped responding change status to not present
 
 	statusPollingAllowed = false; 				// prevent infinite loop, otherwise idle() will call back here recursively
 	idle();																// allow background hardware tasks to run (prevents comm pile-up)
@@ -228,7 +229,7 @@ uint8_t Serial_readNbytes(uint8_t* data, int len){
 	
 	while ((len > 0) & (LCD_SERIAL.available()>0))	// till len bytes or no more available			
 	{
-		*data = LCD_SERIAL.read();										// read bytes into buffer
+		*data = LCD_SERIAL.read();										// read bytes into buffer (actual code is in HardwareSerial.h)
 		++data;
 		--len;				
 	}
@@ -242,17 +243,30 @@ uint8_t Serial_readNbytes(uint8_t* data, int len){
 // format the supplied variables into a Modbus message for the Vevor VFD, and store it in
 // a global array with a calulated CRC as the last two bytes of the array. Then call to
 // LCD_SERIAL.write with the address of the array and the size in bytes.
-// Return true if ok, false if error 
+// Return true if ok, false if error
+
+//TG 12/23/23 found that noise from VFD when spindle runs causes the RS485 comm to glitch occasionally,
+//returning an error which then causes a new initialReadVFD() call (and stopping the motor).
+//Added ferrite cylinders to the VFD<>Marlin board cable, which helped but did not completely eliminate.
+//Finally decided to add a check of mbResponseLen when starting to read the available received bytes
+//after the first byte has been detected to make sure it wasn't an erroneous 1st byte or a glitch in
+//receiving the rest of the message. If the mbResponseLen is zero after the 1st byte was detected, we
+//assume it's a bad read(glitch) error and jump to retry sending the cmd and reading the response again.
+//We will retry to recover up to 3 times before finally registering an unrecoverable error.
+
 bool writeVevorVFD(byte dev_addr, const byte func, uint16_t param_addr, uint16_t data)
 {
-	byte i,j;
+	byte i,j,trycount;
+	
+	trycount = 0;		// clear the error retry counter
+
 	// clear arrays
 	for (i=0; i<maxCommandMsgSize;i++) {mbCommandMsg[i] = 0;}
 	for (i=0; i<maxResponseMsgSize;i++) {mbResponseMsg[i] = 0;}
 	
 	// start by calculating size of byte array we'll need for the message, then create a dynamic array of that size
 	mbCommandLen = 2 + sizeof(param_addr) + sizeof(data) + 2;		// address, cmd bytes(2) + parm + data + crc bytes(2), put in global var
-
+  
 	// fill the array with everything but the CRC bytes (dynamic array should be accessed by index not as a pointer)
 	mbCommandMsg[0] = dev_addr;    					
 	mbCommandMsg[1] = func;
@@ -278,19 +292,19 @@ bool writeVevorVFD(byte dev_addr, const byte func, uint16_t param_addr, uint16_t
 	}
 	mbCommandMsg[i++] = crc & 0xFF;							// put CRC lsbyte in dest at totalLen - 2
   mbCommandMsg[i]   = (crc & 0xFF00) >> 8;		// put CRC msbyte in dest at totalLen - 1	
-	
-  
+
+	retry:		// jump back here on errors to retry 
 	// next, write completed mbCommandMsg[] to the serial port and wait till TX buffer is empty
 		_delay_ms(50);	 // VFD protocol needs about 50ms space between commands
 		
-	WRITE(P2_12,1);    //TG - ***** for scope measurement normally commented out
-	LCD_SERIAL.write((char*)&mbCommandMsg[0], (size_t)mbCommandLen);
+	//WRITE(P2_12,1);    //TG - ***** for scope measurement normally commented out
+	LCD_SERIAL.write((char*)&mbCommandMsg[0], (size_t)mbCommandLen);  // (actual code is in HardwareSerial.h)
   while(LCD_SERIAL.TXbufferEmpty()==1){;}			// 1=TX busy  0=TX empty
-	WRITE(P2_12,0);
+	//WRITE(P2_12,0);
 	
 	// the Vevor VFD takes about 16ms to respond at 9600baud
-	uint32_t timeout = millis() + 20UL;					// 16ms + 25% timeout for no response
 	mbResponseLen = 0;
+	uint32_t timeout = millis() + 24UL;					// 16ms + 50% timeout for no response
 	// wait until first byte is received or timeout occurs
 	while(mbResponseLen==0 && !ELAPSED(millis(),timeout)) {mbResponseLen = LCD_SERIAL.available();}
 	
@@ -299,17 +313,19 @@ bool writeVevorVFD(byte dev_addr, const byte func, uint16_t param_addr, uint16_t
 	
 	// read the received bytes into global mbResponseMsg[], caller can inspect it, but also return status boolean if error
 	mbResponseLen = LCD_SERIAL.available();								// get response length
+	if(mbResponseLen == 0 && trycount++ <3) goto retry;
+
 	Serial_readNbytes(&mbResponseMsg[0], mbResponseLen);	// read that number of bytes (or zero) into global buffer
   if (mbResponseMsg[1] & 0x80 || mbResponseMsg[1]==0)		// check for error flag (bit7 set), or first byte null (timeout)
 	{
-		WRITE(P4_28,0);    //TG - ***** for scope measurement normally commented out
-    asm("nop");
-		asm("nop");
+		//WRITE(P4_28,0);    	//TG - ***** for scope measurement normally commented out
+    //asm("nop");
+		//asm("nop");
 		return false;
 	}
 	else
 	{
-		WRITE(P4_28,1);
+		//WRITE(P4_28,1);			//TG - ***** for scope measurement normally commented out
 	  return true;
 	  
 	}

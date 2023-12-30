@@ -14,6 +14,10 @@
 #include <stdint.h>
 #define maxCommandMsgSize 8
 #define maxResponseMsgSize 16
+
+//On the VFD parameter F164=0(4800),1(9600),2(19200),3(38400)
+#define VFD_BAUD_RATE 9600  //TG 12/23/23 set this here and Configuration_adv.h will use it for LCD_SERIAL_PORT
+
 //TG note that for the following to have a SINGLE INSTANCE shared by all .cpp files that include vfd.h,
 //they must be declared 'extern' here and defined in one .cpp file (vfd.cpp in this case).
 //If they were declared and defined here as 'static byte mbCommandMsg[]', etc. then every .cpp file
