@@ -1623,7 +1623,7 @@ void Temperature::mintemp_error(const heater_id_t heater_id) {
       #if WATCH_HOTENDS
         // Make sure temperature is increasing
         if (watch_hotend[e].elapsed(ms)) {          // Enabled and time to check?
-          if (watch_hotend[e].check(degHotend(e)))  // Increased enough?
+          if (watch_hotend[e].check(degHotend(e)))  // Increased enough? (curr>=target)?
             start_watching_hotend(e);               // If temp reached, turn off elapsed check
           else {
             TERN_(HAS_DWIN_E3V2_BASIC, DWIN_Popup_Temperature(0));

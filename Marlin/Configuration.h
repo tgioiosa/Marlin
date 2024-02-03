@@ -128,7 +128,7 @@
 //#define BLUETOOTH
 
 // Name displayed in the LCD "Ready" message and Info menu
-#define CUSTOM_MACHINE_NAME "SWX1 050923"  //TG 04/17/23
+#define CUSTOM_MACHINE_NAME "SWX1 010424"  //TG 08/28/23 version
 
 // Printer's unique ID, used by some programs to differentiate between machines.
 // Choose your own or use a service like https://www.uuidgenerator.net/version4
@@ -875,8 +875,8 @@
 #if DISABLED(DEBUG)  //TG 5/12/23 added this to allow debugging, otherwise temperature overruns!
   #define THERMAL_PROTECTION_HOTENDS // Enable thermal protection for all extruders
   #define THERMAL_PROTECTION_BED     // Enable thermal protection for the heated bed
-  #define THERMAL_PROTECTION_CHAMBER // Enable thermal protection for the heated chamber
-  #define THERMAL_PROTECTION_COOLER  // Enable thermal protection for the laser cooling
+  //#define THERMAL_PROTECTION_CHAMBER // Enable thermal protection for the heated chamber  TG 1/4/24 was active
+  //#define THERMAL_PROTECTION_COOLER  // Enable thermal protection for the laser cooling   TG 1/4/24 was active
 #endif
 //===========================================================================
 //============================= Mechanical Settings =========================

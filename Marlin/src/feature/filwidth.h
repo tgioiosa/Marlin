@@ -27,7 +27,7 @@
 
 class FilamentWidthSensor {
 public:
-  static int16_t N_FW;              //TG 8/27/23 new avr to hold adc Offset
+  static int16_t N_FW;              //TG 8/27/23 new var to hold adc Offset
   static constexpr int MMD_CM = MAX_MEASUREMENT_DELAY + 1, MMD_MM = MMD_CM * 10;
   static bool enabled;              // (M405-M406) Filament Width Sensor ON/OFF.
   static uint32_t accum;            // ADC accumulator
